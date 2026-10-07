@@ -1,8 +1,8 @@
-// Elementos (.item) dentro de los marcos de texto, e historial de deshacer compartido.
-//  - Un elemento es un trabajo, un proyecto, un estudio, un grupo de skills…
-//  - Se arrastra a otra posición del mismo marco, a otro marco, o a una zona vacía
-//    de la hoja (entonces se crea un marco nuevo para él).
-// Los controles se inyectan con el atributo del editor y se eliminan al guardar.
+// Items (.item) inside text frames, and the shared undo history.
+//  - An item is a job, a project, a degree, a group of skills…
+//  - It can be dragged to another position in the same frame, to another frame, or to an
+//    empty area of the page (a new frame is then created for it).
+// Controls are injected with the editor attribute and removed on save.
 
 export const FRAME = '.page > .frame';
 const ITEM = '.item';
@@ -41,10 +41,10 @@ export const BLOCKS_CSS = `
 /**
  * @param {object} o
  * @param {() => Document} o.doc
- * @param {string} o.attr                 atributo que marca lo inyectado por el editor
- * @param {() => any} o.getState          estado completo para deshacer (cuerpo + estilos)
+ * @param {string} o.attr                 attribute marking what the editor injects
+ * @param {() => any} o.getState          full state for undo (body + styles)
  * @param {(s: any) => void} o.setState
- * @param {() => void} o.onChange         tras cada cambio estructural
+ * @param {() => void} o.onChange         after each structural change
  * @param {(msg: string) => void} o.toast
  */
 export function createBlocks({ doc, attr, getState, setState, onChange, toast }) {
@@ -59,9 +59,9 @@ export function createBlocks({ doc, attr, getState, setState, onChange, toast })
     box.setAttribute('contenteditable', 'false');
     box.className = 'cv-ctl cv-ctl-item';
     for (const [act, icon, title] of [
-      ['drag', '⠿', 'Arrastrar bloque (a otro sitio del marco, a otro marco o a una zona vacía)'],
-      ['dup', '⧉', 'Duplicar bloque'],
-      ['del', '✕', 'Eliminar bloque'],
+      ['drag', '⠿', 'Drag block (elsewhere in the frame, to another frame or to an empty area)'],
+      ['dup', '⧉', 'Duplicate block'],
+      ['del', '✕', 'Delete block'],
     ]) {
       const b = d.createElement('button');
       b.type = 'button';
@@ -84,7 +84,7 @@ export function createBlocks({ doc, attr, getState, setState, onChange, toast })
     }
   }
 
-  // ---------- Historial (compartido por bloques, marcos, formas y estilos) ----------
+  // ---------- History (shared by blocks, frames, shapes and styles) ----------
   function snapshot() {
     undoStack.push(getState());
     if (undoStack.length > 100) undoStack.shift();
@@ -108,7 +108,7 @@ export function createBlocks({ doc, attr, getState, setState, onChange, toast })
     onChange();
     return true;
   }
-  /** Al escribir o dar formato, ⌘Z vuelve a ser el deshacer nativo del texto. */
+  /** When typing or formatting, ⌘Z goes back to being the native text undo. */
   function textEdited() {
     lastWasStructural = false;
   }
@@ -118,7 +118,7 @@ export function createBlocks({ doc, attr, getState, setState, onChange, toast })
     lastWasStructural = false;
   }
 
-  // ---------- Acciones ----------
+  // ---------- Actions ----------
   function duplicate(el) {
     snapshot();
     const clone = el.cloneNode(true);
@@ -131,10 +131,10 @@ export function createBlocks({ doc, attr, getState, setState, onChange, toast })
     snapshot();
     el.remove();
     committed();
-    toast('Bloque eliminado · ⌘Z para deshacer');
+    toast('Block deleted · ⌘Z to undo');
   }
 
-  // ---------- Arrastrar ----------
+  // ---------- Drag ----------
   function pageScale(page) {
     return page.getBoundingClientRect().width / page.offsetWidth || 1;
   }
@@ -228,7 +228,7 @@ export function createBlocks({ doc, attr, getState, setState, onChange, toast })
         parent.insertBefore(el, next);
         committed();
       } else if (ghost.parentNode) {
-        // Soltado en una zona vacía: nuevo marco con este bloque.
+        // Dropped on an empty area: new frame with this block.
         const { x, y } = target;
         ghost.remove();
         snapshot();
@@ -251,7 +251,7 @@ export function createBlocks({ doc, attr, getState, setState, onChange, toast })
     handle.addEventListener('pointercancel', onUp);
   }
 
-  /** Engancha los eventos al documento del iframe (llamar tras cada carga). */
+  /** Hooks events onto the iframe document (call after each load). */
   function attach() {
     const d = doc();
     reset();

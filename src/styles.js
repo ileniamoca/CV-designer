@@ -1,19 +1,19 @@
-// Estilos de texto globales (como los estilos de párrafo de InDesign o Word).
-// Los valores viven en el propio CV, en <style id="cv-text-styles"> como variables CSS
-// (--<estilo>-<propiedad>); las reglas del CV las usan. Cambiar una variable cambia
-// todo el texto con ese estilo.
+// Global text styles (like paragraph styles in InDesign or Word).
+// The values live in the CV itself, in <style id="cv-text-styles">, as CSS variables
+// (--<style>-<property>); the CV's rules use them. Changing a variable changes
+// all text with that style.
 
 export const TEXT_STYLES = [
-  { id: 'nombre', label: 'Nombre', match: 'h1', tag: 'h1' },
-  { id: 'cargo', label: 'Subtítulo', match: '.role', tag: 'p', cls: 'role' },
-  { id: 'seccion', label: 'Título de sección', match: 'h2', tag: 'h2' },
-  { id: 'subtitulo', label: 'Encabezado', match: 'h3, .job-head', tag: 'h3' },
-  { id: 'cuerpo', label: 'Cuerpo', match: 'p, li', tag: 'p' },
-  { id: 'detalle', label: 'Detalle', match: '.detail, .where, .meta', tag: 'p', cls: 'detail' },
-  { id: 'nota', label: 'Nota', match: '.note', inline: true },
+  { id: 'name', label: 'Name', match: 'h1', tag: 'h1' },
+  { id: 'role', label: 'Subtitle', match: '.role', tag: 'p', cls: 'role' },
+  { id: 'section', label: 'Section title', match: 'h2', tag: 'h2' },
+  { id: 'subheading', label: 'Heading', match: 'h3, .job-head', tag: 'h3' },
+  { id: 'body', label: 'Body', match: 'p, li', tag: 'p' },
+  { id: 'detail', label: 'Detail', match: '.detail, .where, .meta', tag: 'p', cls: 'detail' },
+  { id: 'note', label: 'Note', match: '.note', inline: true },
 ];
-// Orden de detección: el más específico primero (p.role y p.detail también son <p>).
-const DETECT_ORDER = ['nota', 'detalle', 'cargo', 'nombre', 'seccion', 'subtitulo', 'cuerpo'];
+// Detection order: most specific first (p.role and p.detail are also <p>).
+const DETECT_ORDER = ['note', 'detail', 'role', 'name', 'section', 'subheading', 'body'];
 
 export const PROPS = ['font', 'size', 'weight', 'style', 'case', 'spacing', 'leading', 'color', 'before', 'after'];
 
@@ -40,7 +40,7 @@ export function styleSheetEl(d) {
   return d?.getElementById('cv-text-styles') ?? null;
 }
 
-/** Lee { estilo: { propiedad: valor } } del documento. */
+/** Reads { style: { property: value } } from the document. */
 export function readStyles(d) {
   const el = styleSheetEl(d);
   if (!el?.sheet) return null;
@@ -54,7 +54,7 @@ export function readStyles(d) {
   return values;
 }
 
-/** Reescribe el bloque de variables (legible, para que también se pueda editar a mano). */
+/** Rewrites the variables block (readable, so it can also be edited by hand). */
 export function writeStyles(d, values) {
   const el = styleSheetEl(d);
   if (!el) return;
@@ -68,7 +68,7 @@ export function writeStyles(d, values) {
   updateFontsLink(d, values);
 }
 
-/** Ajusta el <link> de Google Fonts para cargar las familias que se usan. */
+/** Updates the Google Fonts <link> to load the families in use. */
 export function updateFontsLink(d, values) {
   const link = d.getElementById('cv-fonts');
   if (!link) return;
@@ -87,7 +87,7 @@ export function updateFontsLink(d, values) {
   if (link.getAttribute('href') !== href) link.setAttribute('href', href);
 }
 
-/** Estilo del texto donde está el cursor. */
+/** Style of the text at the cursor. */
 export function detectStyle(node) {
   let el = node?.nodeType === 1 ? node : node?.parentElement;
   while (el && !el.matches('.frame, body')) {
@@ -102,13 +102,13 @@ export function detectStyle(node) {
 const BLOCKS = 'h1, h2, h3, p, li, .job-head';
 
 /**
- * Aplica un estilo a los párrafos seleccionados (o al del cursor).
- * Devuelve un mensaje si no se pudo aplicar.
+ * Applies a style to the selected paragraphs (or the one at the cursor).
+ * Returns a message if it could not be applied.
  */
 export function applyStyle(d, id) {
   const style = TEXT_STYLES.find((s) => s.id === id);
   const sel = d.getSelection();
-  if (!sel?.rangeCount) return 'Pon el cursor en un texto para aplicarle el estilo.';
+  if (!sel?.rangeCount) return 'Place the cursor in some text to apply the style.';
   const range = sel.getRangeAt(0);
 
   if (style.inline) {
@@ -117,7 +117,7 @@ export function applyStyle(d, id) {
       note.replaceWith(...note.childNodes);
       return null;
     }
-    if (range.collapsed) return 'Selecciona el texto al que quieres aplicar «Nota».';
+    if (range.collapsed) return 'Select the text you want to apply “Note” to.';
     const span = d.createElement('span');
     span.className = 'note';
     span.append(range.extractContents());
@@ -132,15 +132,15 @@ export function applyStyle(d, id) {
     const b = start?.closest(BLOCKS);
     if (b?.closest('.frame')) blocks = [b];
   }
-  // Un bloque dentro de otro (p. ej. un <p> en un <li>) se trata con su contenedor.
+  // A block inside another (e.g. a <p> in an <li>) is handled with its container.
   blocks = blocks.filter((b) => !blocks.some((o) => o !== b && o.contains(b)));
-  if (!blocks.length) return 'Pon el cursor en un texto para aplicarle el estilo.';
+  if (!blocks.length) return 'Place the cursor in some text to apply the style.';
 
   let skipped = 0;
   let last = null;
   for (const b of blocks) {
     if (b.matches('li')) {
-      if (id !== 'cuerpo') skipped++;
+      if (id !== 'body') skipped++;
       continue;
     }
     const n = d.createElement(style.tag);
@@ -156,5 +156,5 @@ export function applyStyle(d, id) {
     sel.removeAllRanges();
     sel.addRange(r);
   }
-  return skipped ? 'Las viñetas siempre usan el estilo Cuerpo.' : null;
+  return skipped ? 'Bullets always use the Body style.' : null;
 }

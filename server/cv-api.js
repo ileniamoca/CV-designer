@@ -3,32 +3,32 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { htmlToPdf, findChrome } from './pdf.js';
 
-const ROOT = path.resolve('documentos');
+const ROOT = path.resolve('documents');
 const DIRS = {
-  originales: path.join(ROOT, 'originales'),
-  copias: path.join(ROOT, 'copias'),
+  originals: path.join(ROOT, 'originals'),
+  copies: path.join(ROOT, 'copies'),
   pdf: path.join(ROOT, 'pdf'),
 };
-const EXT = { originales: '.html', copias: '.html', pdf: '.pdf' };
+const EXT = { originals: '.html', copies: '.html', pdf: '.pdf' };
 
-/** Devuelve la ruta absoluta de un documento, o lanza si el nombre no es válido. */
+/** Returns the absolute path of a document, or throws if the name is invalid. */
 function resolveDoc(kind, name) {
-  if (!DIRS[kind]) throw httpError(400, `Carpeta desconocida: ${kind}`);
+  if (!DIRS[kind]) throw httpError(400, `Unknown folder: ${kind}`);
   const base = path.basename(String(name || ''));
   if (!base || base.startsWith('.') || path.extname(base) !== EXT[kind]) {
-    throw httpError(400, `Nombre no válido: ${name}`);
+    throw httpError(400, `Invalid name: ${name}`);
   }
   return path.join(DIRS[kind], base);
 }
 
-/** Limpia un nombre elegido por la usuaria para usarlo como archivo. */
+/** Sanitizes a user-chosen name so it can be used as a file name. */
 function cleanName(name, ext) {
   const stem = String(name || '')
     .replace(new RegExp(`\\${ext}$`, 'i'), '')
     .replace(/[\\/:*?"<>|]+/g, '')
     .replace(/^\.+/, '')
     .trim();
-  if (!stem) throw httpError(400, 'El nombre está vacío.');
+  if (!stem) throw httpError(400, 'The name is empty.');
   return stem + ext;
 }
 
@@ -69,10 +69,10 @@ export function cvApi() {
     configureServer(server) {
       for (const dir of Object.values(DIRS)) fs.mkdirSync(dir, { recursive: true });
 
-      // Avisos en vivo (SSE) cuando un archivo cambia en disco, p. ej. editado por Claude.
+      // Live notifications (SSE) when a file changes on disk, e.g. edited by Claude.
       const clients = new Set();
       const timers = new Map();
-      // Solo avisamos si el mtime cambió de verdad: en macOS fs.watch reemite eventos antiguos al arrancar.
+      // Only notify if the mtime really changed: on macOS fs.watch re-emits old events on startup.
       const mtimes = new Map();
       const mtimeOf = (rel) => {
         try { return fs.statSync(path.join(ROOT, rel)).mtimeMs; } catch { return null; }
@@ -117,13 +117,13 @@ export function cvApi() {
 
           // GET /api/docs
           if (parts[1] === 'docs' && parts.length === 2 && req.method === 'GET') {
-            const [originales, copias, pdf] = await Promise.all(
-              ['originales', 'copias', 'pdf'].map(listDir),
+            const [originals, copies, pdf] = await Promise.all(
+              ['originals', 'copies', 'pdf'].map(listDir),
             );
-            return send(res, 200, { originales, copias, pdf, chrome: Boolean(findChrome()) });
+            return send(res, 200, { originals, copies, pdf, chrome: Boolean(findChrome()) });
           }
 
-          // /api/docs/:kind/:name  (GET leer, PUT guardar, DELETE borrar)
+          // /api/docs/:kind/:name  (GET read, PUT save, DELETE delete)
           if (parts[1] === 'docs' && parts.length === 4) {
             const [, , kind, name] = parts;
             const file = resolveDoc(kind, name);
@@ -132,32 +132,31 @@ export function cvApi() {
             }
             if (req.method === 'PUT' && kind !== 'pdf') {
               const html = await readBody(req);
-              if (!html.trim()) throw httpError(400, 'Documento vacío.');
+              if (!html.trim()) throw httpError(400, 'Empty document.');
               await fsp.writeFile(file, html, 'utf8');
               return send(res, 200, { ok: true, kind, name: path.basename(file) });
             }
-            if (req.method === 'DELETE' && kind !== 'originales') {
+            if (req.method === 'DELETE' && kind !== 'originals') {
               await fsp.unlink(file);
               return send(res, 200, { ok: true });
             }
           }
 
-          // POST /api/copies  { name, html, kind? }  → crea un documento nuevo (sin sobrescribir);
-          // kind: 'copias' (por defecto) u 'originales' (CV nuevo desde la plantilla)
+          // POST /api/copies  { name, html }  → creates a new copy (never overwrites)
           if (parts[1] === 'copies' && req.method === 'POST') {
             const { name, html, kind = 'copias' } = await readBody(req);
             if (kind !== 'copias' && kind !== 'originales') throw httpError(400, `Carpeta no válida: ${kind}`);
             if (!String(html || '').trim()) throw httpError(400, 'Documento vacío.');
             let fileName = cleanName(name, '.html');
             const stem = fileName.slice(0, -5);
-            for (let i = 2; fs.existsSync(path.join(DIRS[kind], fileName)); i++) {
+            for (let i = 2; fs.existsSync(path.join(DIRS.copies, fileName)); i++) {
               fileName = `${stem} (${i}).html`;
             }
-            await fsp.writeFile(path.join(DIRS[kind], fileName), html, 'utf8');
-            return send(res, 200, { ok: true, kind, name: fileName });
+            await fsp.writeFile(path.join(DIRS.copies, fileName), html, 'utf8');
+            return send(res, 200, { ok: true, kind: 'copies', name: fileName });
           }
 
-          // POST /api/pdf  { name, html }  → genera documentos/pdf/<name>.pdf
+          // POST /api/pdf  { name, html }  → generates documents/pdf/<name>.pdf
           if (parts[1] === 'pdf' && req.method === 'POST') {
             const { name, html } = await readBody(req);
             const fileName = cleanName(name, '.pdf');
@@ -165,14 +164,14 @@ export function cvApi() {
             return send(res, 200, { ok: true, name: fileName, url: `/files/pdf/${encodeURIComponent(fileName)}` });
           }
 
-          // GET /files/:kind/:name  → servir el archivo tal cual (para abrir PDFs / vista previa)
+          // GET /files/:kind/:name  → serves the file as is (to open PDFs / preview)
           if (parts[0] === 'files' && parts.length === 3 && req.method === 'GET') {
             const file = resolveDoc(parts[1], parts[2]);
             const type = file.endsWith('.pdf') ? 'application/pdf' : 'text/html; charset=utf-8';
             return send(res, 200, await fsp.readFile(file), type);
           }
 
-          throw httpError(404, 'Ruta no encontrada');
+          throw httpError(404, 'Route not found');
         } catch (err) {
           const status = err.status ?? (err.code === 'ENOENT' ? 404 : 500);
           if (status === 500) console.error('[cv-api]', err);

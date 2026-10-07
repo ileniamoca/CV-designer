@@ -15,10 +15,10 @@ export function findChrome() {
   return CANDIDATES.find((p) => fs.existsSync(p)) ?? null;
 }
 
-/** Renderiza un HTML a PDF A4 (vectorial, con fondos) y lo escribe en outPath. */
+/** Renders HTML to an A4 PDF (vector, with backgrounds) and writes it to outPath. */
 export async function htmlToPdf(html, outPath) {
   const executablePath = findChrome();
-  if (!executablePath) throw new Error('No se encontró Chrome/Brave/Edge para generar el PDF.');
+  if (!executablePath) throw new Error('Chrome/Brave/Edge not found; cannot generate the PDF.');
   const browser = await puppeteer.launch({ executablePath, headless: true });
   try {
     const page = await browser.newPage();

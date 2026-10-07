@@ -3,8 +3,8 @@ dist
 .DS_Store
 .env*
 
-# Datos personales (CVs, copias, PDFs): no subir al repo público
-/documentos/
+# Personal data (CVs, copies, PDFs): never push to the public repo
+/documents/
 /backups/*.html
 /backups/*.pdf
 /ilenia.md

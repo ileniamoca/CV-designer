@@ -1,73 +1,73 @@
-# Editor de CVs
+# CV Designer
 
-Herramienta local (Vite) para editar los currículums de Ilenia como si fuera Word, guardar copias y exportar PDF.
+Local tool (Vite) to edit Ilenia's CVs as if in Word, save copies and export PDFs.
 
-## Dónde están los documentos
+## Language
 
-- `documentos/originales/` — CVs originales (HTML autocontenido, estilos dentro de `<style>`). **Son la fuente de verdad.**
-- `documentos/copias/` — copias guardadas desde la web ("Guardar como copia…").
-- `documentos/pdf/` — PDFs exportados (A4, generados con Chrome vía puppeteer-core).
-- `plantillas/en-blanco.html` — plantilla de CV nuevo (dos columnas, texto de ejemplo genérico, sin datos
-  personales; sí se sube al repo). El botón «+ Nuevo CV» la copia a `originales/`, o duplica un CV existente
-  en `copias/`.
+- **Everything in this repository is written in English**: code, comments, UI text, documentation and commit
+  messages. Keep it that way when adding or changing anything (talking to Ilenia in Spanish is fine).
 
-## Estructura del CV: diseño libre (marcos, formas y estilos)
+## Where the documents live
 
-Los CVs usan un diseño libre tipo InDesign/Canva sobre una hoja A4 fija (`.page`, 210 × 297 mm = 794 × 1123 px):
+- `documents/originals/` — original CVs (self-contained HTML, styles inside `<style>`). **They are the source of truth.**
+- `documents/copies/` — copies saved from the web app ("Save as copy…").
+- `documents/pdf/` — exported PDFs (A4, generated with Chrome via puppeteer-core).
 
-- **Marco** = `.page > .frame` (normalmente `<section class="frame">`) con posición absoluta en línea:
-  `style="left: 40px; top: 129px; width: 516px;"`. El alto lo da su contenido. Columna principal: x 40, ancho 516;
-  columna lateral: x 606, ancho 166; separación estándar entre marcos: 16 px.
-- **Forma** = `.page > .shape` con `left/top/width/height/background` (franja gris lateral, línea de cabecera…).
-  Van antes que los marcos en el HTML (quedan detrás).
-- **Elemento** = `<div class="item">` dentro de un marco: un trabajo (`.job-head` + `ul`/`p`), un proyecto
-  (`h3` + `ul`), un estudio, un grupo de skills, un idioma… Al añadir contenido, envuélvelo en un `.item`.
-- **Estilos de texto** = variables en `<style id="cv-text-styles">` (`--<estilo>-font|size|weight|style|case|spacing|leading|color|before|after`).
-  Estilos: `nombre` (h1), `cargo` (.role), `seccion` (h2), `subtitulo` (h3, .job-head), `cuerpo` (p, li),
-  `detalle` (.detail, .where, .meta) y `nota` (.note). Para cambiar la tipografía de todo el documento, cambia
-  estas variables, no las reglas. Las fuentes se cargan con `<link id="cv-fonts">` (el editor lo regenera).
-- Para convertir un CV antiguo de flujo (`main`/`aside`) a este formato: `node backups/convert-free.mjs <entrada> <salida>`.
+## CV structure: free-form layout (frames, shapes and styles)
 
-## Formato A4
+CVs use an InDesign/Canva-style free-form layout on a fixed A4 page (`.page`, 210 × 297 mm = 794 × 1123 px):
 
-- Cada CV debe caber en **una sola hoja A4**: ningún marco debe pasar de `top + alto > 1123 px` ni solaparse con otro.
-  Tras editar texto, recoloca los marcos de debajo (o exporta el PDF y revísalo). El editor avisa en la barra
-  inferior de marcos fuera de la hoja o solapados.
+- **Frame** = `.page > .frame` (usually `<section class="frame">`) with an inline absolute position:
+  `style="left: 40px; top: 129px; width: 516px;"`. Its height comes from its content. Main column: x 40, width 516;
+  side column: x 606, width 166; standard spacing between frames: 16 px.
+- **Shape** = `.page > .shape` with `left/top/width/height/background` (grey side stripe, header rule…).
+  Shapes come before the frames in the HTML (so they sit behind them).
+- **Item** = `<div class="item">` inside a frame: a job (`.job-head` + `ul`/`p`), a project
+  (`h3` + `ul`), a degree, a group of skills, a language… When adding content, wrap it in an `.item`.
+- **Text styles** = variables in `<style id="cv-text-styles">` (`--<style>-font|size|weight|style|case|spacing|leading|color|before|after`).
+  Styles: `name` (h1), `role` (.role), `section` (h2), `subheading` (h3, .job-head), `body` (p, li),
+  `detail` (.detail, .where, .meta) and `note` (.note). To change the typography of the whole document, change
+  these variables, not the rules. Fonts are loaded with `<link id="cv-fonts">` (the editor regenerates it).
+- To convert an old flow CV (`main`/`aside`) to this format: `node backups/convert-free.mjs <input> <output>`.
 
-## Cuando Ilenia pida cambios en un CV
+## A4 format
 
-- Edita directamente el `.html` correspondiente con Edit. Conserva la estructura y las clases existentes
-  (`.frame`, `.item`, `.job-head`, `.where`, `.note`, `h2 .meta`…) para no romper el diseño ni el A4 de impresión.
-- Si pide una versión nueva (p. ej. adaptada a una oferta), crea un archivo nuevo en `documentos/copias/`
-  partiendo del original, en vez de tocar el original.
-- Si pide un CV desde cero, parte de `plantillas/en-blanco.html` y guárdalo en `documentos/originales/`.
-- Si el editor está abierto, recarga solo el documento al detectar el cambio en disco (no hace falta avisar).
-- Para generar el PDF desde terminal: `npm run pdf -- documentos/copias/<archivo>.html`
-  (sale en `documentos/pdf/`).
-- Contexto profesional de Ilenia para redactar contenido: `../ilenia/*.md`, `../career_summary_ilenia_1.md`,
-  ofertas en `../jobs/`.
+- Every CV must fit on **a single A4 page**: no frame may go past `top + height > 1123 px` or overlap another.
+  After editing text, reposition the frames below (or export the PDF and check it). The editor's status bar
+  warns about frames outside the page or overlapping.
 
-## Datos personales
+## When Ilenia asks for changes to a CV
 
-- Los datos personales de Ilenia (email, teléfono, etc.) están en `ilenia.md`, que está en `.gitignore`.
-  **El repo es público:** nunca copies esos datos en `CLAUDE.md` ni en ningún archivo que se suba.
+- Edit the corresponding `.html` directly with Edit. Keep the existing structure and classes
+  (`.frame`, `.item`, `.job-head`, `.where`, `.note`, `h2 .meta`…) so the design and A4 print layout don't break.
+- If she asks for a new version (e.g. tailored to a job offer), create a new file in `documents/copies/`
+  based on the original, instead of touching the original.
+- If the editor is open, it reloads the document by itself when it detects the change on disk (no need to say so).
+- To generate the PDF from the terminal: `npm run pdf -- documents/copies/<file>.html`
+  (output goes to `documents/pdf/`).
+- Ilenia's professional background for writing content: `../ilenia/*.md`, `../career_summary_ilenia_1.md`,
+  job offers in `../jobs/`.
+
+## Personal data
+
+- Ilenia's personal data (email, phone, etc.) is in `ilenia.md`, which is in `.gitignore`.
+  **The repo is public:** never copy that data into `CLAUDE.md` or any other file that gets pushed.
 
 ## Git
 
-- Repositorio: https://github.com/ileniamoca/CV-designer.git (rama `main`).
-- **Después de cada cambio sustancial, haz commit y push a `main`** (`git add … && git commit && git push origin main`),
-  con un mensaje descriptivo. Los retoques triviales pueden agruparse en el siguiente commit.
+- Repository: https://github.com/ileniamoca/CV-designer.git (branch `main`).
+- **After every substantial change, commit and push to `main`** (`git add … && git commit && git push origin main`)
+  with a descriptive message. Trivial tweaks can be grouped into the next commit.
 
-## Código
+## Code
 
-- `server/cv-api.js` — plugin de Vite con la API local (`/api/docs`, `/api/copies` — crea en `copias`
-  o, con `kind: 'originales'`, en originales —, `/api/pdf`, `/api/events` SSE).
-- `server/pdf.js` — HTML → PDF con el Chrome/Brave instalado.
-- `src/main.js` — editor: el CV se carga en un iframe con `body.contentEditable`; lo que inyecta el editor lleva
-  `data-cv-editor` (y clases `cv-*`) y se elimina al guardar.
-- `src/canvas.js` — diseño libre: seleccionar/mover/redimensionar marcos y formas, snap con guías, teclado,
-  apartar marcos al crecer el texto, avisos de solapamiento, alinear, añadir elementos.
-- `src/blocks.js` — elementos (.item): arrastrar entre marcos o a un marco nuevo, duplicar, eliminar; y el
-  historial de deshacer compartido (cuerpo + estilos).
-- `src/styles.js` — estilos de texto: leer/escribir las variables, aplicar estilo al párrafo, catálogo de fuentes.
-- Arrancar: `npm run dev` → http://localhost:5180
+- `server/cv-api.js` — Vite plugin with the local API (`/api/docs`, `/api/copies`, `/api/pdf`, `/api/events` SSE).
+- `server/pdf.js` — HTML → PDF with the installed Chrome/Brave.
+- `src/main.js` — editor: the CV is loaded in an iframe with `body.contentEditable`; whatever the editor injects
+  carries `data-cv-editor` (and `cv-*` classes) and is removed on save.
+- `src/canvas.js` — free-form layout: select/move/resize frames and shapes, snapping with guides, keyboard,
+  pushing frames down as text grows, overlap warnings, alignment, adding elements.
+- `src/blocks.js` — items (.item): drag between frames or into a new frame, duplicate, delete; plus the
+  shared undo history (body + styles).
+- `src/styles.js` — text styles: read/write the variables, apply a style to a paragraph, font catalog.
+- Start: `npm run dev` → http://localhost:5180

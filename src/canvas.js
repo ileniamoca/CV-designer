@@ -1,11 +1,11 @@
-// Diseño libre sobre la hoja A4 (al estilo InDesign/Canva).
-//  - Marco (.frame): caja de texto con left/top/width; el alto lo da su contenido.
-//  - Forma (.shape): rectángulo de color con left/top/width/height (fondos, líneas).
-// Mover con el asa ✥ (o arrastrando la forma), redimensionar con los tiradores,
-// snap suave a bordes/centros de la página y de otros elementos (⌥ lo desactiva).
+// Free-form layout on the A4 page (InDesign/Canva style).
+//  - Frame (.frame): text box with left/top/width; its height comes from its content.
+//  - Shape (.shape): colored rectangle with left/top/width/height (backgrounds, lines).
+// Move with the ✥ handle (or by dragging the shape), resize with the handles,
+// soft snap to the edges/centers of the page and of other elements (⌥ disables it).
 
-const GAP = 16; // separación estándar entre secciones
-const SNAP_PX = 6; // distancia de enganche, en píxeles de pantalla
+const GAP = 16; // standard spacing between sections
+const SNAP_PX = 6; // snap distance, in screen pixels
 
 export const CANVAS_CSS = `
   .page > .frame:hover, .page > .shape:hover { outline: 1px dashed rgba(43,87,151,.45); outline-offset: 2px; }
@@ -52,17 +52,17 @@ export const CANVAS_CSS = `
  * @param {string} o.attr
  * @param {{snapshot: () => void, committed: () => void}} o.history
  * @param {() => boolean} o.snapEnabled
- * @param {() => boolean} o.pushEnabled          al crecer un marco, desplazar los de debajo
- * @param {(el: Element|null) => void} o.onSelect   selección o geometría cambiada
+ * @param {() => boolean} o.pushEnabled          when a frame grows, shift the ones below
+ * @param {(el: Element|null) => void} o.onSelect   selection or geometry changed
  * @param {(r: {outside: number, overlaps: number}) => void} o.onLayout
  * @param {(msg: string) => void} o.toast
  */
 export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onSelect, onLayout, toast }) {
   let selected = null;
-  let frameMode = false; // true: el marco está seleccionado como objeto (no editando su texto)
+  let frameMode = false; // true: the frame is selected as an object (not editing its text)
   let resizeObserver = null;
-  let heights = new WeakMap(); // última altura conocida de cada marco
-  let pushReady = false; // no empujar hasta que carguen las fuentes (cambian todas las alturas)
+  let heights = new WeakMap(); // last known height of each frame
+  let pushReady = false; // don't push until fonts have loaded (they change every height)
 
   const page = () => doc()?.querySelector('.page');
   const objects = () => [...(page()?.querySelectorAll(':scope > .frame, :scope > .shape') ?? [])];
@@ -81,13 +81,13 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     return el;
   }
 
-  // ---------- Controles ----------
+  // ---------- Controls ----------
   function controls(isShape) {
     const box = editorEl('div', 'cv-ctl cv-ctl-frame');
     for (const [act, icon, title] of [
-      ['move', '✥', isShape ? 'Mover forma' : 'Mover marco (⌥ para mover sin snap)'],
-      ['dup', '⧉', 'Duplicar (⌘D)'],
-      ['del', '✕', 'Eliminar (⌫ con el marco seleccionado)'],
+      ['move', '✥', isShape ? 'Move shape' : 'Move frame (⌥ to move without snapping)'],
+      ['dup', '⧉', 'Duplicate (⌘D)'],
+      ['del', '✕', 'Delete (⌫ with the frame selected)'],
     ]) {
       const b = doc().createElement('button');
       b.type = 'button';
@@ -116,10 +116,10 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
         }
       }
     }
-    // Vigilar alturas de los marcos (al escribir crecen): empujar los de debajo y avisar de solapamientos.
+    // Watch frame heights (they grow while typing): push the ones below and flag overlaps.
     resizeObserver?.disconnect();
     resizeObserver = new (doc().defaultView.ResizeObserver)(onFramesResized);
-    // Solo los marcos nuevos: los cambios de alto pendientes los procesa onFramesResized.
+    // Only new frames: pending height changes are handled by onFramesResized.
     for (const f of frames()) if (!heights.has(f)) heights.set(f, f.offsetHeight);
     frames().forEach((f) => resizeObserver.observe(f));
   }
@@ -128,7 +128,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     heights = new WeakMap(frames().map((f) => [f, f.offsetHeight]));
   }
 
-  /** Si un marco cambia de alto, desplaza lo mismo los marcos que tiene justo debajo. */
+  /** If a frame changes height, shift the frames right below it by the same amount. */
   function onFramesResized() {
     if (pushReady && pushEnabled()) {
       const list = frames().sort((a, b) => a.offsetTop - b.offsetTop);
@@ -149,13 +149,13 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     checkLayout();
   }
 
-  /** Empezar a empujar (tras cargar fuentes) con las alturas actuales como referencia. */
+  /** Start pushing (after fonts load) using the current heights as reference. */
   function enablePush() {
     rememberHeights();
     pushReady = true;
   }
 
-  // ---------- Selección ----------
+  // ---------- Selection ----------
   function select(el, asObject = false) {
     if (selected && selected !== el) selected.classList.remove('cv-selected');
     selected = el && el.isConnected ? el : null;
@@ -173,8 +173,8 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     const H = p.offsetHeight;
     const xs = [0, W / 2, W];
     const ys = [0, H / 2, H];
-    const gapTop = []; // donde puede empezar un marco: debajo de otro + GAP
-    const gapBottom = []; // donde puede acabar un marco: encima de otro − GAP
+    const gapTop = []; // where a frame can start: below another + GAP
+    const gapBottom = []; // where a frame can end: above another − GAP
     for (const el of objects()) {
       if (el === exclude) continue;
       const g = geom(el);
@@ -188,7 +188,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     return { xs, ys, gapTop, gapBottom };
   }
 
-  /** Busca el enganche más cercano de cualquiera de los bordes `edges` contra `values`. */
+  /** Finds the closest snap of any of the `edges` against `values`. */
   function nearest(edges, values, th) {
     let best = null;
     for (const e of edges) {
@@ -215,7 +215,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     }
     if (snapY) {
       if (typeof snapY.target === 'object') {
-        // Separación estándar entre marcos
+        // Standard spacing between frames
         const g = editorEl('div', 'cv-guide gap');
         const top = Math.min(snapY.target.from, snapY.at);
         g.style.top = `${top}px`;
@@ -239,7 +239,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     page().append(b);
   }
 
-  // ---------- Mover y redimensionar ----------
+  // ---------- Move and resize ----------
   function startMove(e, el) {
     e.preventDefault();
     const handle = e.target;
@@ -354,7 +354,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
       }
       const box = geom(el);
       drawGuides(snapX, snapY, box);
-      badge(isShape ? `${box.w} × ${box.h}` : `ancho ${box.w}`, box);
+      badge(isShape ? `${box.w} × ${box.h}` : `width ${box.w}`, box);
     };
 
     const onUp = () => {
@@ -371,7 +371,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     handle.addEventListener('pointercancel', onUp);
   }
 
-  // ---------- Acciones ----------
+  // ---------- Actions ----------
   function duplicate(el = selected) {
     if (!el) return;
     history.snapshot();
@@ -392,10 +392,10 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     if (el === selected) select(null);
     el.remove();
     history.committed();
-    toast('Elemento eliminado · ⌘Z para deshacer');
+    toast('Element deleted · ⌘Z to undo');
   }
 
-  /** Cambia posición/tamaño del seleccionado (desde el inspector). */
+  /** Changes position/size of the selection (from the inspector). */
   function setGeometry(patch) {
     if (!selected) return;
     history.snapshot();
@@ -449,7 +449,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     if (type === 'text') {
       el = doc().createElement('section');
       el.className = 'frame';
-      el.innerHTML = '<h2>Nueva sección</h2><p>Escribe aquí…</p>';
+      el.innerHTML = '<h2>New section</h2><p>Type here…</p>';
       Object.assign(el.style, { left: '40px', top: `${y}px`, width: '300px' });
       p.append(el);
     } else {
@@ -460,7 +460,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
         left: '40px', top: `${y}px`, width: line ? '300px' : '200px', height: line ? '2px' : '120px',
         background: line ? '#555555' : '#efefef',
       });
-      // Las formas van detrás del texto.
+      // Shapes go behind the text.
       const firstFrame = p.querySelector(':scope > .frame');
       p.insertBefore(el, firstFrame);
     }
@@ -469,7 +469,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     select(el, true);
   }
 
-  /** Empuja hacia abajo los marcos que se solapan con otro que está encima. */
+  /** Pushes down frames that overlap another frame above them. */
   function resolveOverlaps() {
     const list = frames().sort((a, b) => a.offsetTop - b.offsetTop);
     history.snapshot();
@@ -488,7 +488,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
       }
     }
     history.committed();
-    toast(changed ? `${changed} marco${changed > 1 ? 's' : ''} recolocado${changed > 1 ? 's' : ''}` : 'No había solapamientos');
+    toast(changed ? `${changed} frame${changed > 1 ? 's' : ''} moved` : 'No overlaps found');
   }
 
   function checkLayout() {
@@ -510,7 +510,7 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     onLayout({ outside, overlaps });
   }
 
-  // ---------- Eventos ----------
+  // ---------- Events ----------
   function onKeyDown(e) {
     if (!selected) return false;
     if (e.key === 'Escape') {
@@ -557,14 +557,14 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
         if (btn.dataset.act === 'del') remove(el);
         return;
       }
-      if (target.closest?.('.cv-ctl')) return; // controles de bloque
-      // ⌥+clic: seleccionar la forma que hay detrás del texto (p. ej. la franja lateral).
+      if (target.closest?.('.cv-ctl')) return; // block controls
+      // ⌥+click: select the shape behind the text (e.g. the side stripe).
       const behind = e.altKey && d.elementsFromPoint(e.clientX, e.clientY).find((n) => n.matches('.page > .shape'));
       if (behind) return startMove(e, behind);
       const shape = target.closest?.('.page > .shape');
       if (shape) return startMove(e, shape);
       const frame = target.closest?.('.page > .frame');
-      if (frame) return select(frame, false); // editar texto
+      if (frame) return select(frame, false); // edit text
       select(null);
     }, true);
   }

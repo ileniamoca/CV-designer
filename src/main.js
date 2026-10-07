@@ -7,7 +7,7 @@ import TEMPLATE from '../plantillas/en-blanco.html?raw';
 
 const $ = (sel) => document.querySelector(sel);
 const iframe = $('#editor');
-const EDITOR_ATTR = 'data-cv-editor'; // marca lo que inyecta el editor; nunca se guarda
+const EDITOR_ATTR = 'data-cv-editor'; // marks what the editor injects; never saved
 
 const state = {
   current: null, // { kind, name }
@@ -15,8 +15,7 @@ const state = {
   dirty: false,
   zoom: 1,
   chrome: false,
-  docs: { originales: [], copias: [] }, // última lista recibida (para «Nuevo CV»)
-  ownWrites: new Map(), // "kind/name" → timestamp de nuestro último guardado
+  ownWrites: new Map(), // "kind/name" → timestamp of our last save
   confirmedOriginals: new Set(),
 };
 
@@ -31,19 +30,15 @@ async function api(path, opts = {}) {
 const docUrl = (kind, name) => `/api/docs/${kind}/${encodeURIComponent(name)}`;
 const stem = (name) => name.replace(/\.(html|pdf)$/i, '');
 
-// ---------- Lista lateral ----------
+// ---------- Sidebar list ----------
 async function refreshList() {
   const data = await api('/api/docs');
   state.chrome = data.chrome;
-  state.docs = data;
-  $('#empty').textContent = data.originales.length || data.copias.length
-    ? 'Elige un CV a la izquierda para empezar a editar.'
-    : 'Aún no hay CVs. Pulsa «+ Nuevo CV» para crear el primero.';
-  for (const kind of ['originales', 'copias', 'pdf']) {
+  for (const kind of ['originals', 'copies', 'pdf']) {
     const ul = $(`#list-${kind}`);
     ul.replaceChildren();
     if (!data[kind].length) {
-      ul.append(Object.assign(document.createElement('li'), { className: 'none', textContent: 'Vacío' }));
+      ul.append(Object.assign(document.createElement('li'), { className: 'none', textContent: 'Empty' }));
       continue;
     }
     for (const f of data[kind]) ul.append(renderItem(kind, f));
@@ -59,7 +54,7 @@ function renderItem(kind, f) {
   label.textContent = stem(f.name);
   const date = document.createElement('span');
   date.className = 'date';
-  date.textContent = new Date(f.mtime).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+  date.textContent = new Date(f.mtime).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
   label.append(date);
   li.append(label);
 
@@ -68,14 +63,14 @@ function renderItem(kind, f) {
   } else {
     li.addEventListener('click', () => openDoc(kind, f.name));
   }
-  if (kind !== 'originales') {
+  if (kind !== 'originals') {
     const del = document.createElement('button');
     del.className = 'mini del';
     del.textContent = '✕';
-    del.title = 'Eliminar';
+    del.title = 'Delete';
     del.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm(`¿Eliminar "${f.name}"? No se puede deshacer.`)) return;
+      if (!confirm(`Delete "${f.name}"? This cannot be undone.`)) return;
       await api(docUrl(kind, f.name), { method: 'DELETE' });
       if (state.current?.kind === kind && state.current?.name === f.name) closeDoc();
       refreshList();
@@ -85,7 +80,7 @@ function renderItem(kind, f) {
   return li;
 }
 
-// ---------- Documento ----------
+// ---------- Document ----------
 function doc() {
   return iframe.contentDocument;
 }
@@ -146,7 +141,7 @@ function serialize() {
 }
 
 async function openDoc(kind, name, { force = false, keepScroll = false } = {}) {
-  if (!force && state.dirty && !confirm('Tienes cambios sin guardar. ¿Descartarlos?')) return;
+  if (!force && state.dirty && !confirm('You have unsaved changes. Discard them?')) return;
   try {
     const html = await api(docUrl(kind, name));
     const scrollY = keepScroll ? iframe.contentWindow?.scrollY ?? 0 : 0;
@@ -190,14 +185,14 @@ function setupEditing() {
   style.setAttribute(EDITOR_ATTR, '');
   d.head.append(style);
   applyZoom();
-  // contentEditable (no designMode) para que los controles de bloque no sean editables.
+  // contentEditable (not designMode) so the block controls are not editable.
   d.body.contentEditable = 'true';
   try { d.execCommand('defaultParagraphSeparator', false, 'p'); } catch {}
   blocks.attach();
   canvas.attach();
   renderStyles();
   updateInspector(null);
-  // Recalcular páginas/avisos cuando cambie la altura (texto, bloques movidos, fuentes cargadas…).
+  // Recompute pages/warnings when the height changes (text, moved blocks, loaded fonts…).
   new d.defaultView.ResizeObserver(() => updatePages()).observe(d.querySelector('.page') ?? d.body);
   d.fonts?.ready.then(() => {
     canvas.enablePush();
@@ -220,8 +215,8 @@ function setupEditing() {
     updateToolbarState();
     markActiveStyle();
   });
-  // Triple clic: como en Word, seleccionar solo el párrafo (el navegador se extiende al bloque
-  // siguiente y al escribir encima fusiona ambos, rompiendo el diseño).
+  // Triple click: like Word, select only the paragraph (the browser extends into the next
+  // block and typing over it merges both, breaking the layout).
   d.addEventListener('click', (e) => {
     if (e.detail !== 3) return;
     const block = e.target.closest?.('p, li, h1, h2, h3, h4, h5, h6, td, th, div, span.meta');
@@ -232,7 +227,7 @@ function setupEditing() {
     sel.removeAllRanges();
     sel.addRange(range);
   });
-  // En modo edición los enlaces no navegan; ⌘+clic los abre.
+  // In edit mode links don't navigate; ⌘+click opens them.
   d.addEventListener('click', (e) => {
     const a = e.target.closest?.('a[href]');
     if (a && (e.metaKey || e.ctrlKey)) window.open(a.href, '_blank');
@@ -274,30 +269,30 @@ function updateChrome() {
   $('#btnPdf').disabled = !has;
   $('#btnPrint').disabled = !has;
   const label = has
-    ? `${stem(state.current.name)} — ${state.current.kind === 'originales' ? 'Original' : 'Copia'}`
-    : 'Ningún documento abierto';
+    ? `${stem(state.current.name)} — ${state.current.kind === 'originals' ? 'Original' : 'Copy'}`
+    : 'No document open';
   $('#docName').textContent = label + (state.dirty ? ' •' : '');
-  $('#status').textContent = has ? (state.dirty ? 'Cambios sin guardar' : 'Guardado') : '';
-  $('#pathInfo').textContent = has ? `CVs/documentos/${state.current.kind}/${state.current.name}` : '';
-  document.title = has ? `${state.dirty ? '• ' : ''}${stem(state.current.name)} · Editor de CVs` : 'Editor de CVs';
+  $('#status').textContent = has ? (state.dirty ? 'Unsaved changes' : 'Saved') : '';
+  $('#pathInfo').textContent = has ? `CVs/documents/${state.current.kind}/${state.current.name}` : '';
+  document.title = has ? `${state.dirty ? '• ' : ''}${stem(state.current.name)} · CV Designer` : 'CV Designer';
 }
 
 function updateWordCount() {
   const text = doc()?.body?.innerText ?? '';
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  $('#wordCount').textContent = `${words} palabras`;
+  $('#wordCount').textContent = `${words} words`;
   updatePages();
 }
 
-// ---------- Páginas A4 ----------
+// ---------- A4 pages ----------
 const A4_HEIGHT_PX = (297 / 25.4) * 96;
 
-/** Cuenta las hojas A4 que ocupa el CV y dibuja una marca donde acaba cada una. */
+/** Counts the A4 pages the CV takes up and draws a mark where each one ends. */
 function updatePages() {
   const d = doc();
   const page = d?.querySelector('.page') ?? d?.body;
   if (!page) return;
-  if (page.querySelector(':scope > .frame')) return canvas.checkLayout(); // diseño libre: hoja fija
+  if (page.querySelector(':scope > .frame')) return canvas.checkLayout(); // free-form layout: fixed page
   const pages = Math.max(1, Math.ceil(page.offsetHeight / A4_HEIGHT_PX - 0.01));
   const marks = [...page.querySelectorAll(':scope > .cv-pagebreak')];
   for (let i = marks.length; i < pages - 1; i++) {
@@ -311,14 +306,14 @@ function updatePages() {
   marks.forEach((m, i) => {
     if (i >= pages - 1) return m.remove();
     m.style.top = `${(i + 1) * 297}mm`;
-    m.dataset.label = `Fin de la página ${i + 1} · empieza la página ${i + 2}`;
+    m.dataset.label = `End of page ${i + 1} · page ${i + 2} starts`;
   });
   const el = $('#pageCount');
-  el.textContent = pages === 1 ? '1 página A4' : `⚠ ${pages} páginas A4: el contenido no cabe en una hoja`;
+  el.textContent = pages === 1 ? '1 A4 page' : `⚠ ${pages} A4 pages: the content does not fit on one page`;
   el.classList.toggle('warn', pages > 1);
 }
 
-// ---------- Guardar ----------
+// ---------- Save ----------
 function markOwnWrite(kind, name) {
   state.ownWrites.set(`${kind}/${name}`, Date.now());
 }
@@ -326,9 +321,9 @@ function markOwnWrite(kind, name) {
 async function save() {
   if (!state.current || !state.dirty) return;
   const { kind, name } = state.current;
-  if (kind === 'originales' && !state.confirmedOriginals.has(name)) {
+  if (kind === 'originals' && !state.confirmedOriginals.has(name)) {
     const ok = confirm(
-      'Vas a sobrescribir el ORIGINAL.\n\n¿Seguro? (Si prefieres conservarlo, usa "Guardar como copia…")',
+      'You are about to overwrite the ORIGINAL.\n\nAre you sure? (To keep it, use "Save as copy…")',
     );
     if (!ok) return;
     state.confirmedOriginals.add(name);
@@ -343,7 +338,7 @@ async function save() {
     });
     state.savedHtml = html;
     setDirty(false);
-    toast('Guardado');
+    toast('Saved');
     refreshList();
   } catch (err) {
     toast(err.message, true);
@@ -354,7 +349,7 @@ async function saveCopy() {
   if (!state.current) return;
   const today = new Date().toISOString().slice(0, 10);
   const base = stem(state.current.name).replace(/ - \d{4}-\d{2}-\d{2}( \(\d+\))?$/, '');
-  const name = await askName('Guardar como copia', `${base} - ${today}`);
+  const name = await askName('Save as copy', `${base} - ${today}`);
   if (!name) return;
   const html = serialize();
   try {
@@ -363,12 +358,12 @@ async function saveCopy() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, html }),
     });
-    markOwnWrite('copias', res.name);
-    state.current = { kind: 'copias', name: res.name };
+    markOwnWrite('copies', res.name);
+    state.current = { kind: 'copies', name: res.name };
     try { localStorage.setItem('cv-editor:last', JSON.stringify(state.current)); } catch {}
     state.savedHtml = html;
     setDirty(false);
-    toast(`Copia guardada: ${res.name}`);
+    toast(`Copy saved: ${res.name}`);
     refreshList();
   } catch (err) {
     toast(err.message, true);
@@ -378,26 +373,26 @@ async function saveCopy() {
 async function exportPdf() {
   if (!state.current) return;
   if (!state.chrome) {
-    toast('No encontré Chrome para generar el PDF; usa "Guardar como PDF" en el diálogo de impresión.');
+    toast('Chrome not found, so the PDF cannot be generated; use "Save as PDF" in the print dialog.');
     return printDoc();
   }
-  const name = await askName('Exportar PDF', stem(state.current.name), 'Exportar');
+  const name = await askName('Export PDF', stem(state.current.name), 'Export');
   if (!name) return;
   const btn = $('#btnPdf');
   btn.disabled = true;
-  btn.textContent = 'Generando…';
+  btn.textContent = 'Generating…';
   try {
     const res = await api('/api/pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, html: serialize() }),
     });
-    toast(`PDF creado: <a href="${res.url}" target="_blank">${res.name}</a>`, false, true);
+    toast(`PDF created: <a href="${res.url}" target="_blank">${res.name}</a>`, false, true);
     refreshList();
   } catch (err) {
     toast(err.message, true);
   } finally {
-    btn.textContent = 'Exportar PDF';
+    btn.textContent = 'Export PDF';
     updateChrome();
   }
 }
@@ -407,77 +402,8 @@ function printDoc() {
   iframe.contentWindow?.print();
 }
 
-// ---------- CV nuevo ----------
-const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-
-/** Crea un CV desde la plantilla en blanco (en Originales) o duplicando otro (en Copias) y lo abre. */
-async function newCv() {
-  const choice = await askNew();
-  if (!choice) return;
-  if (state.dirty && !confirm('Tienes cambios sin guardar. ¿Descartarlos?')) return;
-  const { name, source } = choice;
-  try {
-    const html = source
-      ? await api(docUrl(source.kind, source.name))
-      : TEMPLATE.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(stem(name))}</title>`);
-    const res = await api('/api/copies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, html, kind: source ? 'copias' : 'originales' }),
-    });
-    markOwnWrite(res.kind, res.name);
-    if (res.kind === 'originales') state.confirmedOriginals.add(res.name); // es suyo: guardar sin avisar
-    await openDoc(res.kind, res.name, { force: true });
-    toast(`CV creado: ${res.name}`);
-  } catch (err) {
-    toast(err.message, true);
-  }
-}
-
-function askNew() {
-  const dlg = $('#newDialog');
-  const input = $('#newName');
-  const select = $('#newFrom');
-  const sources = [
-    null,
-    ...['originales', 'copias'].flatMap((kind) => (state.docs[kind] ?? []).map((f) => ({ kind, name: f.name }))),
-  ];
-  select.innerHTML = '<option value="0">Plantilla en blanco</option>' +
-    ['originales', 'copias'].map((kind) => {
-      const opts = sources
-        .map((src, i) => (src?.kind === kind ? `<option value="${i}">${escapeHtml(stem(src.name))}</option>` : ''))
-        .join('');
-      return opts && `<optgroup label="${kind === 'originales' ? 'Originales' : 'Copias'}">${opts}</optgroup>`;
-    }).join('');
-  const today = new Date().toISOString().slice(0, 10);
-  const suggest = (src) => (src ? `${stem(src.name).replace(/ - \d{4}-\d{2}-\d{2}( \(\d+\))?$/, '')} - ${today}` : 'CV nuevo');
-  let suggested = suggest(null);
-  const update = () => {
-    const src = sources[select.value];
-    $('#newHint').textContent = src
-      ? `Se guardará en Copias como duplicado de «${stem(src.name)}».`
-      : 'Se guardará en Originales: hoja A4 de dos columnas con texto de ejemplo para reemplazar.';
-    if (input.value === suggested) input.value = suggested = suggest(src); // solo si no lo ha cambiado
-  };
-  select.onchange = update;
-  input.value = suggested;
-  update();
-  dlg.returnValue = '';
-  dlg.showModal();
-  input.select();
-  return new Promise((resolve) => {
-    dlg.addEventListener(
-      'close',
-      () => resolve(dlg.returnValue === 'ok' && input.value.trim()
-        ? { name: input.value.trim(), source: sources[select.value] }
-        : null),
-      { once: true },
-    );
-  });
-}
-
-// ---------- Diálogo de nombre ----------
-function askName(title, value, okLabel = 'Guardar') {
+// ---------- Name dialog ----------
+function askName(title, value, okLabel = 'Save') {
   const dlg = $('#nameDialog');
   $('#nameDialogTitle').textContent = title;
   dlg.querySelector('button.primary').textContent = okLabel;
@@ -495,7 +421,7 @@ function askName(title, value, okLabel = 'Guardar') {
   });
 }
 
-// ---------- Formato ----------
+// ---------- Formatting ----------
 function exec(cmd, value = null) {
   const d = doc();
   if (!d) return;
@@ -520,7 +446,7 @@ function updateToolbarState() {
 function insertLink() {
   const sel = doc()?.getSelection();
   const current = sel?.anchorNode?.parentElement?.closest('a')?.getAttribute('href') ?? 'https://';
-  const url = prompt('Dirección del enlace (https://…, mailto:…, tel:…)', current);
+  const url = prompt('Link address (https://…, mailto:…, tel:…)', current);
   if (url) exec('createLink', url);
 }
 
@@ -560,13 +486,13 @@ function setZoom(z) {
   applyZoom();
 }
 
-// ---------- Inspector: disposición ----------
+// ---------- Inspector: layout ----------
 function updateLayoutStatus({ outside, overlaps }) {
   const el = $('#pageCount');
   const msgs = [];
-  if (outside) msgs.push(`${outside} marco${outside > 1 ? 's' : ''} fuera de la hoja`);
-  if (overlaps) msgs.push(`${overlaps} marcos se solapan`);
-  el.textContent = msgs.length ? `⚠ ${msgs.join(' · ')}` : '1 página A4 · sin solapamientos';
+  if (outside) msgs.push(`${outside} frame${outside > 1 ? 's' : ''} outside the page`);
+  if (overlaps) msgs.push(`${overlaps} frames overlap`);
+  el.textContent = msgs.length ? `⚠ ${msgs.join(' · ')}` : '1 A4 page · no overlaps';
   el.classList.toggle('warn', msgs.length > 0);
   $('#btnResolve').classList.toggle('attention', overlaps > 0);
 }
@@ -584,13 +510,13 @@ function updateInspector(el) {
   if (!has) return;
   const isShape = el.classList.contains('shape');
   const heading = el.querySelector('h1, h2, h3, p')?.textContent.trim().slice(0, 28);
-  $('#selTitle').textContent = isShape ? 'Forma' : `Marco de texto${heading ? ` · ${heading}` : ''}`;
+  $('#selTitle').textContent = isShape ? 'Shape' : `Text frame${heading ? ` · ${heading}` : ''}`;
   $('#geoX').value = el.offsetLeft;
   $('#geoY').value = el.offsetTop;
   $('#geoW').value = el.offsetWidth;
   $('#geoH').value = el.offsetHeight;
   $('#geoH').disabled = !isShape;
-  $('#geoH').title = isShape ? '' : 'El alto de un marco de texto lo marca su contenido';
+  $('#geoH').title = isShape ? '' : 'A text frame’s height is set by its content';
   $('#colorRow').hidden = !isShape;
   if (isShape) $('#shapeColor').value = toHex(doc().defaultView.getComputedStyle(el).backgroundColor);
 }
@@ -604,7 +530,7 @@ document.querySelectorAll('[data-arrange]').forEach((b) => b.addEventListener('c
 document.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => doc() && canvas.add(b.dataset.add)));
 $('#btnResolve').addEventListener('click', () => doc() && canvas.resolveOverlaps());
 
-// ---------- Inspector: estilos de texto ----------
+// ---------- Inspector: text styles ----------
 const WEIGHT_NAMES = { 400: 'Regular', 500: 'Medium', 700: 'Bold' };
 const num = (v) => parseFloat(v) || 0;
 let styleValues = null;
@@ -617,7 +543,7 @@ function previewCss(v) {
 }
 
 function ensureFontsLoaded() {
-  // Cargar en el editor todas las fuentes del catálogo para las previsualizaciones.
+  // Load every font in the catalog into the editor for the previews.
   if (document.getElementById('ui-fonts')) return;
   const link = document.createElement('link');
   link.id = 'ui-fonts';
@@ -632,7 +558,7 @@ function renderStyles() {
   styleValues = readStyles(doc());
   list.replaceChildren();
   if (!styleValues) {
-    list.innerHTML = '<p class="hint">Este documento no tiene estilos de texto definidos.</p>';
+    list.innerHTML = '<p class="hint">This document has no text styles defined.</p>';
     return;
   }
   ensureFontsLoaded();
@@ -648,9 +574,9 @@ function styleRow(s) {
 
   const apply = document.createElement('button');
   apply.className = 'style-apply';
-  apply.title = s.inline ? 'Aplicar a la selección (o quitar)' : 'Aplicar al párrafo';
+  apply.title = s.inline ? 'Apply to the selection (or remove)' : 'Apply to the paragraph';
   apply.innerHTML = `<span class="preview"></span><span class="meta"></span>`;
-  apply.addEventListener('mousedown', (e) => e.preventDefault()); // conservar la selección del CV
+  apply.addEventListener('mousedown', (e) => e.preventDefault()); // keep the CV selection
   apply.addEventListener('click', () => {
     blocks.snapshot();
     const msg = applyStyle(doc(), s.id);
@@ -661,7 +587,7 @@ function styleRow(s) {
 
   const edit = document.createElement('button');
   edit.className = 'style-edit';
-  edit.title = 'Editar el estilo en todo el documento';
+  edit.title = 'Edit the style across the document';
   edit.textContent = '✎';
   edit.addEventListener('click', () => {
     form.hidden = !form.hidden;
@@ -676,16 +602,16 @@ function styleRow(s) {
     (font ? '' : `<option value='${v.font}'>${v.font}</option>`);
   const weights = (font?.weights ?? [400, 700]).map((w) => `<option value="${w}">${WEIGHT_NAMES[w] ?? w}</option>`).join('');
   form.innerHTML = `
-    <label class="wide">Fuente <select data-p="font">${fontOptions}</select></label>
-    <label>Tamaño <span class="unit"><input type="number" data-p="size" step="0.25" min="4"> pt</span></label>
-    <label>Peso <select data-p="weight">${weights}</select></label>
-    <label>Interlineado <input type="number" data-p="leading" step="0.05" min="0.8"></label>
-    <label>Espaciado <span class="unit"><input type="number" data-p="spacing" step="0.1"> px</span></label>
-    <label>Antes <span class="unit"><input type="number" data-p="before" step="0.25" min="0"> pt</span></label>
-    <label>Después <span class="unit"><input type="number" data-p="after" step="0.25" min="0"> pt</span></label>
+    <label class="wide">Font <select data-p="font">${fontOptions}</select></label>
+    <label>Size <span class="unit"><input type="number" data-p="size" step="0.25" min="4"> pt</span></label>
+    <label>Weight <select data-p="weight">${weights}</select></label>
+    <label>Line height <input type="number" data-p="leading" step="0.05" min="0.8"></label>
+    <label>Letter spacing <span class="unit"><input type="number" data-p="spacing" step="0.1"> px</span></label>
+    <label>Before <span class="unit"><input type="number" data-p="before" step="0.25" min="0"> pt</span></label>
+    <label>After <span class="unit"><input type="number" data-p="after" step="0.25" min="0"> pt</span></label>
     <label>Color <input type="color" data-p="color"></label>
-    <label class="check"><input type="checkbox" data-p="style"> Cursiva</label>
-    <label class="check"><input type="checkbox" data-p="case"> MAYÚSCULAS</label>`;
+    <label class="check"><input type="checkbox" data-p="style"> Italic</label>
+    <label class="check"><input type="checkbox" data-p="case"> UPPERCASE</label>`;
   const fields = Object.fromEntries([...form.querySelectorAll('[data-p]')].map((f) => [f.dataset.p, f]));
   fields.font.value = v.font;
   fields.size.value = num(v.size);
@@ -719,7 +645,7 @@ function styleRow(s) {
     }
     styleValues[s.id][p] = read[p](e.target);
     if (p === 'font') {
-      // Ajustar los pesos disponibles a la nueva fuente.
+      // Match the available weights to the new font.
       const f = fontByStack(e.target.value);
       const ws = f?.weights ?? [400, 700];
       fields.weight.innerHTML = ws.map((w) => `<option value="${w}">${WEIGHT_NAMES[w] ?? w}</option>`).join('');
@@ -758,7 +684,7 @@ function markActiveStyle() {
   document.querySelectorAll('.style-row').forEach((r) => r.classList.toggle('active', r.dataset.id === id));
 }
 
-// ---------- Avisos ----------
+// ---------- Toasts ----------
 let toastTimer;
 function toast(msg, error = false, html = false) {
   document.querySelector('.toast')?.remove();
@@ -770,7 +696,7 @@ function toast(msg, error = false, html = false) {
   toastTimer = setTimeout(() => el.remove(), html ? 8000 : 3000);
 }
 
-// ---------- Cambios en disco (p. ej. ediciones hechas por Claude) ----------
+// ---------- Changes on disk (e.g. edits made by Claude) ----------
 function listenForChanges() {
   const es = new EventSource('/api/events');
   let listTimer;
@@ -783,14 +709,14 @@ function listenForChanges() {
     if (state.dirty) {
       $('#banner').hidden = false;
     } else {
-      openDoc(kind, name, { force: true, keepScroll: true }).then(() => toast('Documento actualizado desde disco'));
+      openDoc(kind, name, { force: true, keepScroll: true }).then(() => toast('Document reloaded from disk'));
     }
   };
 }
 
-// ---------- Inicio ----------
+// ---------- Startup ----------
 document.querySelectorAll('#toolbar [data-cmd]').forEach((b) => {
-  b.addEventListener('mousedown', (e) => e.preventDefault()); // conservar la selección
+  b.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection
   b.addEventListener('click', () => exec(b.dataset.cmd));
 });
 $('#sizeSelect').addEventListener('change', (e) => {
@@ -823,5 +749,5 @@ refreshList().then(() => {
   let last = null;
   try { last = JSON.parse(localStorage.getItem('cv-editor:last')); } catch {}
   const lastItem = last && [...document.querySelectorAll(`#list-${last.kind} li`)].find((li) => li.title === last.name);
-  (lastItem ?? document.querySelector('#list-originales li:not(.none)'))?.click();
+  (lastItem ?? document.querySelector('#list-originals li:not(.none)'))?.click();
 });
