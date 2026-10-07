@@ -7,6 +7,9 @@ Herramienta local (Vite) para editar los currículums de Ilenia como si fuera Wo
 - `documentos/originales/` — CVs originales (HTML autocontenido, estilos dentro de `<style>`). **Son la fuente de verdad.**
 - `documentos/copias/` — copias guardadas desde la web ("Guardar como copia…").
 - `documentos/pdf/` — PDFs exportados (A4, generados con Chrome vía puppeteer-core).
+- `plantillas/en-blanco.html` — plantilla de CV nuevo (dos columnas, texto de ejemplo genérico, sin datos
+  personales; sí se sube al repo). El botón «+ Nuevo CV» la copia a `originales/`, o duplica un CV existente
+  en `copias/`.
 
 ## Estructura del CV: diseño libre (marcos, formas y estilos)
 
@@ -37,6 +40,7 @@ Los CVs usan un diseño libre tipo InDesign/Canva sobre una hoja A4 fija (`.page
   (`.frame`, `.item`, `.job-head`, `.where`, `.note`, `h2 .meta`…) para no romper el diseño ni el A4 de impresión.
 - Si pide una versión nueva (p. ej. adaptada a una oferta), crea un archivo nuevo en `documentos/copias/`
   partiendo del original, en vez de tocar el original.
+- Si pide un CV desde cero, parte de `plantillas/en-blanco.html` y guárdalo en `documentos/originales/`.
 - Si el editor está abierto, recarga solo el documento al detectar el cambio en disco (no hace falta avisar).
 - Para generar el PDF desde terminal: `npm run pdf -- documentos/copias/<archivo>.html`
   (sale en `documentos/pdf/`).
@@ -56,7 +60,8 @@ Los CVs usan un diseño libre tipo InDesign/Canva sobre una hoja A4 fija (`.page
 
 ## Código
 
-- `server/cv-api.js` — plugin de Vite con la API local (`/api/docs`, `/api/copies`, `/api/pdf`, `/api/events` SSE).
+- `server/cv-api.js` — plugin de Vite con la API local (`/api/docs`, `/api/copies` — crea en `copias`
+  o, con `kind: 'originales'`, en originales —, `/api/pdf`, `/api/events` SSE).
 - `server/pdf.js` — HTML → PDF con el Chrome/Brave instalado.
 - `src/main.js` — editor: el CV se carga en un iframe con `body.contentEditable`; lo que inyecta el editor lleva
   `data-cv-editor` (y clases `cv-*`) y se elimina al guardar.
