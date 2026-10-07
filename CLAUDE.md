@@ -43,6 +43,11 @@ Los CVs usan un diseño libre tipo InDesign/Canva sobre una hoja A4 fija (`.page
 - Contexto profesional de Ilenia para redactar contenido: `../ilenia/*.md`, `../career_summary_ilenia_1.md`,
   ofertas en `../jobs/`.
 
+## Datos personales
+
+- Los datos personales de Ilenia (email, teléfono, etc.) están en `ilenia.md`, que está en `.gitignore`.
+  **El repo es público:** nunca copies esos datos en `CLAUDE.md` ni en ningún archivo que se suba.
+
 ## Git
 
 - Repositorio: https://github.com/ileniamoca/CV-designer.git (rama `main`).
