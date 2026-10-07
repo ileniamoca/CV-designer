@@ -142,16 +142,19 @@ export function cvApi() {
             }
           }
 
-          // POST /api/copies  { name, html }  → crea una copia nueva (sin sobrescribir)
+          // POST /api/copies  { name, html, kind? }  → crea un documento nuevo (sin sobrescribir);
+          // kind: 'copias' (por defecto) u 'originales' (CV nuevo desde la plantilla)
           if (parts[1] === 'copies' && req.method === 'POST') {
-            const { name, html } = await readBody(req);
+            const { name, html, kind = 'copias' } = await readBody(req);
+            if (kind !== 'copias' && kind !== 'originales') throw httpError(400, `Carpeta no válida: ${kind}`);
+            if (!String(html || '').trim()) throw httpError(400, 'Documento vacío.');
             let fileName = cleanName(name, '.html');
             const stem = fileName.slice(0, -5);
-            for (let i = 2; fs.existsSync(path.join(DIRS.copias, fileName)); i++) {
+            for (let i = 2; fs.existsSync(path.join(DIRS[kind], fileName)); i++) {
               fileName = `${stem} (${i}).html`;
             }
-            await fsp.writeFile(path.join(DIRS.copias, fileName), html, 'utf8');
-            return send(res, 200, { ok: true, kind: 'copias', name: fileName });
+            await fsp.writeFile(path.join(DIRS[kind], fileName), html, 'utf8');
+            return send(res, 200, { ok: true, kind, name: fileName });
           }
 
           // POST /api/pdf  { name, html }  → genera documentos/pdf/<name>.pdf

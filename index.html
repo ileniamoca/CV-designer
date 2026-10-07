@@ -70,6 +70,7 @@
 
   <div class="layout">
     <nav class="sidebar" id="sidebar">
+      <button id="btnNew" class="new-cv" title="Crear un CV nuevo desde la plantilla o a partir de otro">+ Nuevo CV</button>
       <section>
         <h2>Originales</h2>
         <ul id="list-originales"></ul>
@@ -153,6 +154,23 @@
       <menu>
         <button value="cancel" formnovalidate>Cancelar</button>
         <button value="ok" class="primary">Guardar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="newDialog">
+    <form method="dialog">
+      <h3>Nuevo CV</h3>
+      <label>Nombre del archivo
+        <input id="newName" required autocomplete="off" />
+      </label>
+      <label>Empezar desde
+        <select id="newFrom"></select>
+      </label>
+      <p class="hint" id="newHint"></p>
+      <menu>
+        <button value="cancel" formnovalidate>Cancelar</button>
+        <button value="ok" class="primary">Crear</button>
       </menu>
     </form>
   </dialog>

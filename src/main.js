@@ -3,6 +3,7 @@ import { createCanvas, CANVAS_CSS } from './canvas.js';
 import {
   TEXT_STYLES, FONTS, fontByStack, styleSheetEl, readStyles, writeStyles, detectStyle, applyStyle,
 } from './styles.js';
+import TEMPLATE from '../plantillas/en-blanco.html?raw';
 
 const $ = (sel) => document.querySelector(sel);
 const iframe = $('#editor');
@@ -14,6 +15,7 @@ const state = {
   dirty: false,
   zoom: 1,
   chrome: false,
+  docs: { originales: [], copias: [] }, // última lista recibida (para «Nuevo CV»)
   ownWrites: new Map(), // "kind/name" → timestamp de nuestro último guardado
   confirmedOriginals: new Set(),
 };
@@ -33,6 +35,10 @@ const stem = (name) => name.replace(/\.(html|pdf)$/i, '');
 async function refreshList() {
   const data = await api('/api/docs');
   state.chrome = data.chrome;
+  state.docs = data;
+  $('#empty').textContent = data.originales.length || data.copias.length
+    ? 'Elige un CV a la izquierda para empezar a editar.'
+    : 'Aún no hay CVs. Pulsa «+ Nuevo CV» para crear el primero.';
   for (const kind of ['originales', 'copias', 'pdf']) {
     const ul = $(`#list-${kind}`);
     ul.replaceChildren();
@@ -401,6 +407,75 @@ function printDoc() {
   iframe.contentWindow?.print();
 }
 
+// ---------- CV nuevo ----------
+const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+/** Crea un CV desde la plantilla en blanco (en Originales) o duplicando otro (en Copias) y lo abre. */
+async function newCv() {
+  const choice = await askNew();
+  if (!choice) return;
+  if (state.dirty && !confirm('Tienes cambios sin guardar. ¿Descartarlos?')) return;
+  const { name, source } = choice;
+  try {
+    const html = source
+      ? await api(docUrl(source.kind, source.name))
+      : TEMPLATE.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(stem(name))}</title>`);
+    const res = await api('/api/copies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, html, kind: source ? 'copias' : 'originales' }),
+    });
+    markOwnWrite(res.kind, res.name);
+    if (res.kind === 'originales') state.confirmedOriginals.add(res.name); // es suyo: guardar sin avisar
+    await openDoc(res.kind, res.name, { force: true });
+    toast(`CV creado: ${res.name}`);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+function askNew() {
+  const dlg = $('#newDialog');
+  const input = $('#newName');
+  const select = $('#newFrom');
+  const sources = [
+    null,
+    ...['originales', 'copias'].flatMap((kind) => (state.docs[kind] ?? []).map((f) => ({ kind, name: f.name }))),
+  ];
+  select.innerHTML = '<option value="0">Plantilla en blanco</option>' +
+    ['originales', 'copias'].map((kind) => {
+      const opts = sources
+        .map((src, i) => (src?.kind === kind ? `<option value="${i}">${escapeHtml(stem(src.name))}</option>` : ''))
+        .join('');
+      return opts && `<optgroup label="${kind === 'originales' ? 'Originales' : 'Copias'}">${opts}</optgroup>`;
+    }).join('');
+  const today = new Date().toISOString().slice(0, 10);
+  const suggest = (src) => (src ? `${stem(src.name).replace(/ - \d{4}-\d{2}-\d{2}( \(\d+\))?$/, '')} - ${today}` : 'CV nuevo');
+  let suggested = suggest(null);
+  const update = () => {
+    const src = sources[select.value];
+    $('#newHint').textContent = src
+      ? `Se guardará en Copias como duplicado de «${stem(src.name)}».`
+      : 'Se guardará en Originales: hoja A4 de dos columnas con texto de ejemplo para reemplazar.';
+    if (input.value === suggested) input.value = suggested = suggest(src); // solo si no lo ha cambiado
+  };
+  select.onchange = update;
+  input.value = suggested;
+  update();
+  dlg.returnValue = '';
+  dlg.showModal();
+  input.select();
+  return new Promise((resolve) => {
+    dlg.addEventListener(
+      'close',
+      () => resolve(dlg.returnValue === 'ok' && input.value.trim()
+        ? { name: input.value.trim(), source: sources[select.value] }
+        : null),
+      { once: true },
+    );
+  });
+}
+
 // ---------- Diálogo de nombre ----------
 function askName(title, value, okLabel = 'Guardar') {
   const dlg = $('#nameDialog');
@@ -408,6 +483,7 @@ function askName(title, value, okLabel = 'Guardar') {
   dlg.querySelector('button.primary').textContent = okLabel;
   const input = $('#nameInput');
   input.value = value;
+  dlg.returnValue = ''; // si se cierra con Esc no queda el «ok» de la vez anterior
   dlg.showModal();
   input.select();
   return new Promise((resolve) => {
@@ -728,6 +804,7 @@ $('#btnLink').addEventListener('click', insertLink);
 $('#zoomIn').addEventListener('click', () => setZoom(state.zoom + 0.1));
 $('#zoomOut').addEventListener('click', () => setZoom(state.zoom - 0.1));
 
+$('#btnNew').addEventListener('click', newCv);
 $('#btnSave').addEventListener('click', save);
 $('#btnSaveCopy').addEventListener('click', saveCopy);
 $('#btnPdf').addEventListener('click', exportPdf);
