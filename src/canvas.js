@@ -119,7 +119,8 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
     // Vigilar alturas de los marcos (al escribir crecen): empujar los de debajo y avisar de solapamientos.
     resizeObserver?.disconnect();
     resizeObserver = new (doc().defaultView.ResizeObserver)(onFramesResized);
-    rememberHeights();
+    // Solo los marcos nuevos: los cambios de alto pendientes los procesa onFramesResized.
+    for (const f of frames()) if (!heights.has(f)) heights.set(f, f.offsetHeight);
     frames().forEach((f) => resizeObserver.observe(f));
   }
 
@@ -129,7 +130,6 @@ export function createCanvas({ doc, attr, history, snapEnabled, pushEnabled, onS
 
   /** Si un marco cambia de alto, desplaza lo mismo los marcos que tiene justo debajo. */
   function onFramesResized() {
-    console.log("[RO]", pushReady, pushEnabled(), frames().map((f) => (f.offsetHeight - (heights.get(f) ?? 0))).join(","));
     if (pushReady && pushEnabled()) {
       const list = frames().sort((a, b) => a.offsetTop - b.offsetTop);
       for (const f of list) {

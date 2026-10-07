@@ -8,27 +8,33 @@ Herramienta local (Vite) para editar los currículums de Ilenia como si fuera Wo
 - `documentos/copias/` — copias guardadas desde la web ("Guardar como copia…").
 - `documentos/pdf/` — PDFs exportados (A4, generados con Chrome vía puppeteer-core).
 
-## Estructura en bloques (componentes)
+## Estructura del CV: diseño libre (marcos, formas y estilos)
 
-El editor permite arrastrar, duplicar y eliminar bloques. Para que funcione, los CVs deben seguir esta estructura:
+Los CVs usan un diseño libre tipo InDesign/Canva sobre una hoja A4 fija (`.page`, 210 × 297 mm = 794 × 1123 px):
 
-- **Sección** = cada `<section>` hijo directo de `<main>` (columna principal) o `<aside>` (columna lateral).
-  Se puede mover entre columnas; su estilo lo pone la columna (`aside h3`, `aside p`…), no la sección.
-- **Elemento** = cada `<div class="item">` dentro de una sección: un trabajo (`.job-head` + `ul`/`p`),
-  un proyecto (`h3` + `ul`), un estudio, un grupo de skills, un idioma…
-- Al añadir contenido nuevo, envuélvelo en `<div class="item">` dentro de su `<section>`.
-- Al convertir un CV nuevo a HTML, sigue esta misma estructura (`main`/`aside` > `section` > `.item`).
+- **Marco** = `.page > .frame` (normalmente `<section class="frame">`) con posición absoluta en línea:
+  `style="left: 40px; top: 129px; width: 516px;"`. El alto lo da su contenido. Columna principal: x 40, ancho 516;
+  columna lateral: x 606, ancho 166; separación estándar entre marcos: 16 px.
+- **Forma** = `.page > .shape` con `left/top/width/height/background` (franja gris lateral, línea de cabecera…).
+  Van antes que los marcos en el HTML (quedan detrás).
+- **Elemento** = `<div class="item">` dentro de un marco: un trabajo (`.job-head` + `ul`/`p`), un proyecto
+  (`h3` + `ul`), un estudio, un grupo de skills, un idioma… Al añadir contenido, envuélvelo en un `.item`.
+- **Estilos de texto** = variables en `<style id="cv-text-styles">` (`--<estilo>-font|size|weight|style|case|spacing|leading|color|before|after`).
+  Estilos: `nombre` (h1), `cargo` (.role), `seccion` (h2), `subtitulo` (h3, .job-head), `cuerpo` (p, li),
+  `detalle` (.detail, .where, .meta) y `nota` (.note). Para cambiar la tipografía de todo el documento, cambia
+  estas variables, no las reglas. Las fuentes se cargan con `<link id="cv-fonts">` (el editor lo regenera).
+- Para convertir un CV antiguo de flujo (`main`/`aside`) a este formato: `node backups/convert-free.mjs <entrada> <salida>`.
 
 ## Formato A4
 
-- `.page` mide 210 mm × 297 mm (mín.) también en pantalla: lo que se ve en el editor es lo que se imprime.
-- Los CVs deben caber en **una sola hoja A4**. Tras editar, comprueba la altura (`.page` ≤ 1123 px a 96 dpi)
-  o exporta el PDF y cuenta páginas. El editor marca en rojo los saltos de página y avisa en la barra inferior.
+- Cada CV debe caber en **una sola hoja A4**: ningún marco debe pasar de `top + alto > 1123 px` ni solaparse con otro.
+  Tras editar texto, recoloca los marcos de debajo (o exporta el PDF y revísalo). El editor avisa en la barra
+  inferior de marcos fuera de la hoja o solapados.
 
 ## Cuando Ilenia pida cambios en un CV
 
 - Edita directamente el `.html` correspondiente con Edit. Conserva la estructura y las clases existentes
-  (`.job-head`, `.where`, `.note`, `h2 .meta`, `aside`…) para no romper el diseño ni el A4 de impresión.
+  (`.frame`, `.item`, `.job-head`, `.where`, `.note`, `h2 .meta`…) para no romper el diseño ni el A4 de impresión.
 - Si pide una versión nueva (p. ej. adaptada a una oferta), crea un archivo nuevo en `documentos/copias/`
   partiendo del original, en vez de tocar el original.
 - Si el editor está abierto, recarga solo el documento al detectar el cambio en disco (no hace falta avisar).
@@ -49,5 +55,9 @@ El editor permite arrastrar, duplicar y eliminar bloques. Para que funcione, los
 - `server/pdf.js` — HTML → PDF con el Chrome/Brave instalado.
 - `src/main.js` — editor: el CV se carga en un iframe con `body.contentEditable`; lo que inyecta el editor lleva
   `data-cv-editor` (y clases `cv-*`) y se elimina al guardar.
-- `src/blocks.js` — bloques: controles, arrastrar entre columnas/secciones, duplicar, eliminar y deshacer estructural.
+- `src/canvas.js` — diseño libre: seleccionar/mover/redimensionar marcos y formas, snap con guías, teclado,
+  apartar marcos al crecer el texto, avisos de solapamiento, alinear, añadir elementos.
+- `src/blocks.js` — elementos (.item): arrastrar entre marcos o a un marco nuevo, duplicar, eliminar; y el
+  historial de deshacer compartido (cuerpo + estilos).
+- `src/styles.js` — estilos de texto: leer/escribir las variables, aplicar estilo al párrafo, catálogo de fuentes.
 - Arrancar: `npm run dev` → http://localhost:5180
