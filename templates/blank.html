@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link id="cv-fonts" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&amp;family=Roboto+Mono:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&amp;family=Tinos:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet">
+<style id="cv-text-styles">
+  :root {
+    /* Name */
+    --name-font: "Roboto Mono", monospace;
+    --name-size: 21pt;
+    --name-weight: 700;
+    --name-style: normal;
+    --name-case: none;
+    --name-spacing: 1px;
+    --name-leading: 1.2;
+    --name-color: #222222;
+    --name-before: 0pt;
+    --name-after: 0pt;
+    /* Subtitle */
+    --role-font: "Roboto", sans-serif;
+    --role-size: 15.75pt;
+    --role-weight: 400;
+    --role-style: normal;
+    --role-case: none;
+    --role-spacing: 0.5px;
+    --role-leading: 1.2;
+    --role-color: #222222;
+    --role-before: 3pt;
+    --role-after: 0pt;
+    /* Section title */
+    --section-font: "Roboto Mono", monospace;
+    --section-size: 9.75pt;
+    --section-weight: 700;
+    --section-style: normal;
+    --section-case: uppercase;
+    --section-spacing: 1px;
+    --section-leading: 1.28;
+    --section-color: #222222;
+    --section-before: 12pt;
+    --section-after: 5.25pt;
+    /* Heading */
+    --subheading-font: "Roboto", sans-serif;
+    --subheading-size: 7.875pt;
+    --subheading-weight: 700;
+    --subheading-style: normal;
+    --subheading-case: none;
+    --subheading-spacing: 0px;
+    --subheading-leading: 1.28;
+    --subheading-color: #222222;
+    --subheading-before: 6.75pt;
+    --subheading-after: 2.25pt;
+    /* Body */
+    --body-font: "Tinos", serif;
+    --body-size: 8.25pt;
+    --body-weight: 400;
+    --body-style: normal;
+    --body-case: none;
+    --body-spacing: 0px;
+    --body-leading: 1.28;
+    --body-color: #222222;
+    --body-before: 0pt;
+    --body-after: 4.5pt;
+    /* Detail */
+    --detail-font: "Roboto", sans-serif;
+    --detail-size: 7.5pt;
+    --detail-weight: 400;
+    --detail-style: normal;
+    --detail-case: none;
+    --detail-spacing: 0px;
+    --detail-leading: 1.45;
+    --detail-color: #222222;
+    --detail-before: 0pt;
+    --detail-after: 0pt;
+    /* Note */
+    --note-font: "Roboto", sans-serif;
+    --note-size: 7.875pt;
+    --note-weight: 400;
+    --note-style: normal;
+    --note-case: none;
+    --note-spacing: 0px;
+    --note-leading: 1.28;
+    --note-color: #999999;
+    --note-before: 0pt;
+    --note-after: 0pt;
+  }
+</style>
+<style>
+  :root { --rule: #b5b5b5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #d9d9d9; }
+  a { color: inherit; text-decoration: none; }
+
+  /* A4 page and free-positioned elements (left/top/width on each element) */
+  .page {
+    position: relative; width: 210mm; height: 297mm; margin: 24px auto;
+    background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.15);
+  }
+  .frame, .shape { position: absolute; }
+  .frame > :first-child, .frame > .item:first-child > :first-child { margin-top: 0; }
+  .frame > :nth-last-child(1 of :not([data-cv-editor])),
+  .item > :nth-last-child(1 of :not([data-cv-editor])) { margin-bottom: 0; }
+
+  /* Text styles (values live in #cv-text-styles) */
+  h1 { font-family: var(--name-font); font-size: var(--name-size); font-weight: var(--name-weight);
+    font-style: var(--name-style); text-transform: var(--name-case); letter-spacing: var(--name-spacing);
+    line-height: var(--name-leading); color: var(--name-color); margin: var(--name-before) 0 var(--name-after); }
+  .role { font-family: var(--role-font); font-size: var(--role-size); font-weight: var(--role-weight);
+    font-style: var(--role-style); text-transform: var(--role-case); letter-spacing: var(--role-spacing);
+    line-height: var(--role-leading); color: var(--role-color); margin: var(--role-before) 0 var(--role-after); }
+  h2 { font-family: var(--section-font); font-size: var(--section-size); font-weight: var(--section-weight);
+    font-style: var(--section-style); text-transform: var(--section-case); letter-spacing: var(--section-spacing);
+    line-height: var(--section-leading); color: var(--section-color); margin: var(--section-before) 0 var(--section-after);
+    padding-bottom: 4px; border-bottom: 1px solid var(--rule);
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h3, .job-head { font-family: var(--subheading-font); font-size: var(--subheading-size); font-weight: var(--subheading-weight);
+    font-style: var(--subheading-style); text-transform: var(--subheading-case); letter-spacing: var(--subheading-spacing);
+    line-height: var(--subheading-leading); color: var(--subheading-color); margin: var(--subheading-before) 0 var(--subheading-after); }
+  .job-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; font-weight: 400; }
+  .job-head strong { font-weight: var(--subheading-weight); }
+  h3 .plain { font-weight: 400; }
+  p, li { font-family: var(--body-font); font-size: var(--body-size); font-weight: var(--body-weight);
+    font-style: var(--body-style); text-transform: var(--body-case); letter-spacing: var(--body-spacing);
+    line-height: var(--body-leading); color: var(--body-color); }
+  p { margin: var(--body-before) 0 var(--body-after); }
+  .detail, .where, h2 .meta { font-family: var(--detail-font); font-size: var(--detail-size); font-weight: var(--detail-weight);
+    font-style: var(--detail-style); text-transform: var(--detail-case); letter-spacing: var(--detail-spacing);
+    line-height: var(--detail-leading); color: var(--detail-color); }
+  .detail { margin: var(--detail-before) 0 var(--detail-after); }
+  h2 .meta { font-weight: 700; }
+  h2 .meta span { font-weight: 400; }
+  .note { font-family: var(--note-font); font-size: var(--note-size); font-weight: var(--note-weight);
+    font-style: var(--note-style); text-transform: var(--note-case); letter-spacing: var(--note-spacing);
+    line-height: var(--note-leading); color: var(--note-color); }
+
+  ul { margin: 3px 0 5px; padding-left: 18px; }
+  li { margin: 0 0 1.5px; }
+  .italic li { font-style: italic; }
+  .email { font-weight: 700; }
+  .langs p { margin: 0; }
+
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; overflow: hidden; }
+    .shape { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Background shapes -->
+  <div class="shape" data-role="sidebar" style="left: 584px; top: 0px; width: 210px; height: 1123px; background: #efefef;"></div>
+  <div class="shape" data-role="rule" style="left: 0px; top: 110px; width: 794px; height: 3px; background: rgb(85, 85, 85);"></div>
+
+  <!-- Header -->
+  <div class="frame" data-role="header" style="left: 40px; top: 28px; width: 516px;">
+    <h1>First Last</h1>
+    <p class="role">Job title or professional profile</p>
+  </div>
+  <div class="frame contact" data-role="contact" style="left: 606px; top: 34px; width: 166px;">
+    <p class="detail email">email@example.com</p>
+    <p class="detail">+00 000 000 000</p>
+    <p class="detail">City, Country</p>
+    <p class="detail">linkedin.com/in/username</p>
+  </div>
+
+  <!-- Main column -->
+  <section class="frame" style="left: 40px; top: 129px; width: 516px;">
+    <h2>Profile</h2>
+    <div class="item">
+      <p>A short summary of your profile: experience, specialty and what you bring. Two or three lines are enough.</p>
+    </div>
+  </section>
+
+  <section class="frame" style="left: 40px; top: 188px; width: 516px;">
+    <h2>Experience</h2>
+    <div class="item">
+      <div class="job-head"><span><strong>Job title</strong> · Company</span><span class="where">2022 – present · City</span></div>
+      <ul>
+        <li>Main achievement or responsibility, with concrete results.</li>
+        <li>Another achievement or responsibility relevant to the role.</li>
+      </ul>
+    </div>
+    <div class="item">
+      <div class="job-head"><span><strong>Job title</strong> · Company</span><span class="where">2019 – 2022 · City</span></div>
+      <ul>
+        <li>Main achievement or responsibility, with concrete results.</li>
+        <li>Another achievement or responsibility relevant to the role.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="frame" style="left: 40px; top: 339px; width: 516px;">
+    <h2>Projects</h2>
+    <div class="item">
+      <h3>Project name</h3>
+      <ul>
+        <li>What you did and what the outcome was.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Side column -->
+  <section class="frame" style="left: 606px; top: 129px; width: 166px;">
+    <h2>Education</h2>
+    <div class="item">
+      <h3>Degree</h3>
+      <p class="detail">School · 2015 – 2019</p>
+    </div>
+  </section>
+
+  <section class="frame" style="left: 606px; top: 207px; width: 166px;">
+    <h2>Skills</h2>
+    <div class="item">
+      <h3>Area</h3>
+      <p>Skill, tool, tool</p>
+    </div>
+  </section>
+
+  <section class="frame" style="left: 606px; top: 284px; width: 166px;">
+    <h2>Languages</h2>
+    <div class="item langs">
+      <p>Spanish <span class="note">· native</span></p>
+      <p>English <span class="note">· C1</span></p>
+    </div>
+  </section>
+</div>
+
+
+</body></html>

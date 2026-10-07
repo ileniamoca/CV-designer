@@ -142,18 +142,19 @@ export function cvApi() {
             }
           }
 
-          // POST /api/copies  { name, html }  → creates a new copy (never overwrites)
+          // POST /api/copies  { name, html, kind? }  → creates a new document (never overwrites);
+          // kind: 'copies' (default) or 'originals' (new CV from the template)
           if (parts[1] === 'copies' && req.method === 'POST') {
-            const { name, html, kind = 'copias' } = await readBody(req);
-            if (kind !== 'copias' && kind !== 'originales') throw httpError(400, `Carpeta no válida: ${kind}`);
-            if (!String(html || '').trim()) throw httpError(400, 'Documento vacío.');
+            const { name, html, kind = 'copies' } = await readBody(req);
+            if (kind !== 'copies' && kind !== 'originals') throw httpError(400, `Invalid folder: ${kind}`);
+            if (!String(html || '').trim()) throw httpError(400, 'Empty document.');
             let fileName = cleanName(name, '.html');
             const stem = fileName.slice(0, -5);
-            for (let i = 2; fs.existsSync(path.join(DIRS.copies, fileName)); i++) {
+            for (let i = 2; fs.existsSync(path.join(DIRS[kind], fileName)); i++) {
               fileName = `${stem} (${i}).html`;
             }
-            await fsp.writeFile(path.join(DIRS.copies, fileName), html, 'utf8');
-            return send(res, 200, { ok: true, kind: 'copies', name: fileName });
+            await fsp.writeFile(path.join(DIRS[kind], fileName), html, 'utf8');
+            return send(res, 200, { ok: true, kind, name: fileName });
           }
 
           // POST /api/pdf  { name, html }  → generates documents/pdf/<name>.pdf

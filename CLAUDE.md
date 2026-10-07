@@ -12,6 +12,9 @@ Local tool (Vite) to edit Ilenia's CVs as if in Word, save copies and export PDF
 - `documents/originals/` — original CVs (self-contained HTML, styles inside `<style>`). **They are the source of truth.**
 - `documents/copies/` — copies saved from the web app ("Save as copy…").
 - `documents/pdf/` — exported PDFs (A4, generated with Chrome via puppeteer-core).
+- `templates/blank.html` — template for a new CV (two columns, generic sample text, no personal data;
+  it *is* pushed to the repo). The “+ New CV” button copies it into `originals/`, or duplicates an existing CV
+  into `copies/`.
 
 ## CV structure: free-form layout (frames, shapes and styles)
 
@@ -42,6 +45,7 @@ CVs use an InDesign/Canva-style free-form layout on a fixed A4 page (`.page`, 21
   (`.frame`, `.item`, `.job-head`, `.where`, `.note`, `h2 .meta`…) so the design and A4 print layout don't break.
 - If she asks for a new version (e.g. tailored to a job offer), create a new file in `documents/copies/`
   based on the original, instead of touching the original.
+- If she asks for a CV from scratch, start from `templates/blank.html` and save it in `documents/originals/`.
 - If the editor is open, it reloads the document by itself when it detects the change on disk (no need to say so).
 - To generate the PDF from the terminal: `npm run pdf -- documents/copies/<file>.html`
   (output goes to `documents/pdf/`).
@@ -61,7 +65,8 @@ CVs use an InDesign/Canva-style free-form layout on a fixed A4 page (`.page`, 21
 
 ## Code
 
-- `server/cv-api.js` — Vite plugin with the local API (`/api/docs`, `/api/copies`, `/api/pdf`, `/api/events` SSE).
+- `server/cv-api.js` — Vite plugin with the local API (`/api/docs`, `/api/copies` — creates in `copies`
+  or, with `kind: 'originals'`, in originals —, `/api/pdf`, `/api/events` SSE).
 - `server/pdf.js` — HTML → PDF with the installed Chrome/Brave.
 - `src/main.js` — editor: the CV is loaded in an iframe with `body.contentEditable`; whatever the editor injects
   carries `data-cv-editor` (and `cv-*` classes) and is removed on save.

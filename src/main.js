@@ -3,7 +3,7 @@ import { createCanvas, CANVAS_CSS } from './canvas.js';
 import {
   TEXT_STYLES, FONTS, fontByStack, styleSheetEl, readStyles, writeStyles, detectStyle, applyStyle,
 } from './styles.js';
-import TEMPLATE from '../plantillas/en-blanco.html?raw';
+import TEMPLATE from '../templates/blank.html?raw';
 
 const $ = (sel) => document.querySelector(sel);
 const iframe = $('#editor');
@@ -15,6 +15,7 @@ const state = {
   dirty: false,
   zoom: 1,
   chrome: false,
+  docs: { originals: [], copies: [] }, // last list received (for “New CV”)
   ownWrites: new Map(), // "kind/name" → timestamp of our last save
   confirmedOriginals: new Set(),
 };
@@ -34,6 +35,10 @@ const stem = (name) => name.replace(/\.(html|pdf)$/i, '');
 async function refreshList() {
   const data = await api('/api/docs');
   state.chrome = data.chrome;
+  state.docs = data;
+  $('#empty').textContent = data.originals.length || data.copies.length
+    ? 'Pick a CV on the left to start editing.'
+    : 'No CVs yet. Click “+ New CV” to create the first one.';
   for (const kind of ['originals', 'copies', 'pdf']) {
     const ul = $(`#list-${kind}`);
     ul.replaceChildren();
@@ -402,6 +407,75 @@ function printDoc() {
   iframe.contentWindow?.print();
 }
 
+// ---------- New CV ----------
+const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+/** Creates a CV from the blank template (in Originals) or by duplicating another (in Copies) and opens it. */
+async function newCv() {
+  const choice = await askNew();
+  if (!choice) return;
+  if (state.dirty && !confirm('You have unsaved changes. Discard them?')) return;
+  const { name, source } = choice;
+  try {
+    const html = source
+      ? await api(docUrl(source.kind, source.name))
+      : TEMPLATE.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(stem(name))}</title>`);
+    const res = await api('/api/copies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, html, kind: source ? 'copies' : 'originals' }),
+    });
+    markOwnWrite(res.kind, res.name);
+    if (res.kind === 'originals') state.confirmedOriginals.add(res.name); // it's hers: save without asking
+    await openDoc(res.kind, res.name, { force: true });
+    toast(`CV created: ${res.name}`);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+function askNew() {
+  const dlg = $('#newDialog');
+  const input = $('#newName');
+  const select = $('#newFrom');
+  const sources = [
+    null,
+    ...['originals', 'copies'].flatMap((kind) => (state.docs[kind] ?? []).map((f) => ({ kind, name: f.name }))),
+  ];
+  select.innerHTML = '<option value="0">Blank template</option>' +
+    ['originals', 'copies'].map((kind) => {
+      const opts = sources
+        .map((src, i) => (src?.kind === kind ? `<option value="${i}">${escapeHtml(stem(src.name))}</option>` : ''))
+        .join('');
+      return opts && `<optgroup label="${kind === 'originals' ? 'Originals' : 'Copies'}">${opts}</optgroup>`;
+    }).join('');
+  const today = new Date().toISOString().slice(0, 10);
+  const suggest = (src) => (src ? `${stem(src.name).replace(/ - \d{4}-\d{2}-\d{2}( \(\d+\))?$/, '')} - ${today}` : 'New CV');
+  let suggested = suggest(null);
+  const update = () => {
+    const src = sources[select.value];
+    $('#newHint').textContent = src
+      ? `It will be saved in Copies as a duplicate of “${stem(src.name)}”.`
+      : 'It will be saved in Originals: a two-column A4 page with sample text to replace.';
+    if (input.value === suggested) input.value = suggested = suggest(src); // only if she hasn't changed it
+  };
+  select.onchange = update;
+  input.value = suggested;
+  update();
+  dlg.returnValue = '';
+  dlg.showModal();
+  input.select();
+  return new Promise((resolve) => {
+    dlg.addEventListener(
+      'close',
+      () => resolve(dlg.returnValue === 'ok' && input.value.trim()
+        ? { name: input.value.trim(), source: sources[select.value] }
+        : null),
+      { once: true },
+    );
+  });
+}
+
 // ---------- Name dialog ----------
 function askName(title, value, okLabel = 'Save') {
   const dlg = $('#nameDialog');
@@ -409,7 +483,7 @@ function askName(title, value, okLabel = 'Save') {
   dlg.querySelector('button.primary').textContent = okLabel;
   const input = $('#nameInput');
   input.value = value;
-  dlg.returnValue = ''; // si se cierra con Esc no queda el «ok» de la vez anterior
+  dlg.returnValue = ''; // so closing with Esc doesn't reuse the previous “ok”
   dlg.showModal();
   input.select();
   return new Promise((resolve) => {
