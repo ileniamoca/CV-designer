@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor de CVs</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='3' width='22' height='26' rx='3' fill='%232b5797'/><path d='M10 10h12M10 15h12M10 20h8' stroke='white' stroke-width='2' stroke-linecap='round'/></svg>" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header class="titlebar">
+    <div class="brand">Editor de CVs</div>
+    <div class="docname" id="docName">Ningún documento abierto</div>
+    <div class="actions">
+      <span class="status" id="status"></span>
+      <button id="btnSave" class="primary" title="Guardar (⌘S)" disabled>Guardar</button>
+      <button id="btnSaveCopy" title="Guardar como copia nueva (⇧⌘S)" disabled>Guardar como copia…</button>
+      <button id="btnPdf" title="Exportar a documentos/pdf" disabled>Exportar PDF</button>
+      <button id="btnPrint" title="Imprimir (⌘P)" disabled>Imprimir</button>
+    </div>
+  </header>
+
+  <div class="toolbar" id="toolbar" aria-label="Formato">
+    <div class="group">
+      <button data-cmd="undo" title="Deshacer (⌘Z)">↶</button>
+      <button data-cmd="redo" title="Rehacer (⇧⌘Z)">↷</button>
+    </div>
+    <div class="group">
+      <select id="sizeSelect" title="Tamaño de letra">
+        <option value="">Tamaño</option>
+        <option value="1">Muy pequeño</option>
+        <option value="2">Pequeño</option>
+        <option value="3">Normal</option>
+        <option value="4">Grande</option>
+        <option value="5">Muy grande</option>
+        <option value="6">Enorme</option>
+      </select>
+    </div>
+    <div class="group">
+      <button data-cmd="bold" title="Negrita (⌘B)"><b>N</b></button>
+      <button data-cmd="italic" title="Cursiva (⌘I)"><i>K</i></button>
+      <button data-cmd="underline" title="Subrayado (⌘U)"><u>S</u></button>
+      <button data-cmd="strikeThrough" title="Tachado"><s>ab</s></button>
+      <label class="color" title="Color de texto">A<input type="color" id="foreColor" value="#222222" /></label>
+      <label class="color hl" title="Resaltado">▮<input type="color" id="hiliteColor" value="#fff59d" /></label>
+    </div>
+    <div class="group">
+      <button data-cmd="justifyLeft" title="Alinear a la izquierda">⯇</button>
+      <button data-cmd="justifyCenter" title="Centrar">≡</button>
+      <button data-cmd="justifyRight" title="Alinear a la derecha">⯈</button>
+      <button data-cmd="justifyFull" title="Justificar">☰</button>
+    </div>
+    <div class="group">
+      <button data-cmd="insertUnorderedList" title="Viñetas">• —</button>
+      <button data-cmd="insertOrderedList" title="Numeración">1.</button>
+      <button data-cmd="outdent" title="Reducir sangría">⇤</button>
+      <button data-cmd="indent" title="Aumentar sangría">⇥</button>
+    </div>
+    <div class="group">
+      <button id="btnLink" title="Insertar enlace (⌘K)">🔗</button>
+      <button data-cmd="unlink" title="Quitar enlace">⛓︎̸</button>
+      <button data-cmd="removeFormat" title="Borrar formato">⌫ formato</button>
+    </div>
+    <div class="group right">
+      <button id="zoomOut" title="Alejar">−</button>
+      <span id="zoomLabel">100%</span>
+      <button id="zoomIn" title="Acercar">+</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <nav class="sidebar" id="sidebar">
+      <section>
+        <h2>Originales</h2>
+        <ul id="list-originales"></ul>
+      </section>
+      <section>
+        <h2>Copias</h2>
+        <ul id="list-copias"></ul>
+      </section>
+      <section>
+        <h2>PDF</h2>
+        <ul id="list-pdf"></ul>
+      </section>
+    </nav>
+
+    <main class="canvas">
+      <div class="banner" id="banner" hidden>
+        <span>Este archivo ha cambiado en disco.</span>
+        <button id="bannerReload">Recargar</button>
+        <button id="bannerDismiss">Ignorar</button>
+      </div>
+      <div class="empty" id="empty">Elige un CV a la izquierda para empezar a editar.</div>
+      <iframe id="editor" title="Documento" hidden></iframe>
+    </main>
+
+    <aside class="inspector" id="inspector">
+      <section>
+        <h2>Disposición</h2>
+        <label class="switch"><input type="checkbox" id="snapToggle" checked /> Snap suave
+          <small>· mantén ⌥ al arrastrar para soltarlo libre</small></label>
+        <label class="switch"><input type="checkbox" id="pushToggle" checked /> Apartar los marcos de debajo cuando el texto crece</label>
+        <div class="btn-row">
+          <button data-add="text" title="Nuevo marco de texto">+ Texto</button>
+          <button data-add="rect" title="Nuevo rectángulo">+ Forma</button>
+          <button data-add="line" title="Nueva línea">+ Línea</button>
+        </div>
+        <p class="hint" id="selHint">Selecciona un marco con su asa ✥ o haz clic en una forma (⌥+clic si está detrás del texto) para moverlo, alinearlo o cambiar su tamaño.</p>
+        <div id="selPanel" hidden>
+          <div class="sel-title" id="selTitle">Marco</div>
+          <div class="geo">
+            <label>X <input type="number" id="geoX" /></label>
+            <label>Y <input type="number" id="geoY" /></label>
+            <label>Ancho <input type="number" id="geoW" min="1" /></label>
+            <label>Alto <input type="number" id="geoH" min="1" /></label>
+          </div>
+          <label class="color-row" id="colorRow">Color <input type="color" id="shapeColor" /></label>
+          <div class="btn-row icons" title="Alinear con la hoja">
+            <button data-align="left" title="Alinear a la izquierda de la hoja">⇤</button>
+            <button data-align="hcenter" title="Centrar en horizontal">↔</button>
+            <button data-align="right" title="Alinear a la derecha de la hoja">⇥</button>
+            <button data-align="top" title="Alinear arriba">⤒</button>
+            <button data-align="vcenter" title="Centrar en vertical">↕</button>
+            <button data-align="bottom" title="Alinear abajo">⤓</button>
+          </div>
+          <div class="btn-row">
+            <button data-arrange="front" title="Traer al frente">Al frente</button>
+            <button data-arrange="back" title="Enviar al fondo">Al fondo</button>
+          </div>
+          <p class="hint">Flechas: mover 1 px (⇧ 10 px) · ⌘D duplicar · ⌫ eliminar · Esc soltar</p>
+        </div>
+        <button id="btnResolve" class="full" title="Empuja hacia abajo los marcos que se pisan">Resolver solapamientos</button>
+      </section>
+      <section>
+        <h2>Estilos de texto</h2>
+        <p class="hint">Clic para aplicar al párrafo · ✎ para cambiar el estilo en todo el documento</p>
+        <div id="stylesList"></div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span><span id="wordCount"></span> · <span id="pageCount"></span></span>
+    <span id="pathInfo"></span>
+  </footer>
+
+  <dialog id="nameDialog">
+    <form method="dialog">
+      <h3 id="nameDialogTitle">Guardar como copia</h3>
+      <label>Nombre del archivo
+        <input id="nameInput" required autocomplete="off" />
+      </label>
+      <menu>
+        <button value="cancel" formnovalidate>Cancelar</button>
+        <button value="ok" class="primary">Guardar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+node_modules
+dist
+.DS_Store
+.env*
+
+# Datos personales (CVs, copias, PDFs): no subir al repo público
+/documentos/
+/backups/*.html
+/backups/*.pdf

@@ -1,0 +1,16 @@
+{
+  "name": "editor-cvs",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --open",
+    "pdf": "node server/pdf-cli.js"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}
